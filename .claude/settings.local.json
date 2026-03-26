@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /Users/devita/Documents/saas/hris-fe/app/**/*.tsx /Users/devita/Documents/saas/hris-fe/services/*.ts)",
+      "WebFetch(domain:api.workzen.web.id)",
+      "Bash(npx next:*)",
+      "Bash(npx tsc:*)",
+      "Bash(source \"$HOME/.nvm/nvm.sh\")",
+      "Bash(nvm ls:*)",
+      "Bash(nvm ls-remote:*)",
+      "Bash(nvm use:*)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm install:*)"
+    ]
+  }
+}

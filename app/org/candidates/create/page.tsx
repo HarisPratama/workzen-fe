@@ -1,5 +1,5 @@
 "use client"
-import { ArrowLeft, User, Mail, Phone, MapPin, Briefcase, GraduationCap, DollarSign, Clock, Plus, X } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Briefcase, Calendar } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/app/_components/ui/button";
 import { Input } from "@/app/_components/ui/input";
@@ -12,73 +12,58 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/app/_components/ui/select";
-import { Badge } from "@/app/_components/ui/badge";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
+import { createCandidate } from "@/services/candidate.service";
 
 export default function CandidateAdd() {
     const router = useRouter();
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
-        name: "",
+        full_name: "",
         email: "",
         phone: "",
-        location: "",
-        experience: "",
-        education: "",
-        expectedSalary: "",
-        availability: "",
+        address: "",
+        birth_date: "",
         source: "",
-        summary: "",
+        citizen_id: "",
     });
-
-    const [skills, setSkills] = useState<string[]>([]);
-    const [currentSkill, setCurrentSkill] = useState("");
 
     const handleInputChange = (field: string, value: string) => {
         setFormData({ ...formData, [field]: value });
     };
 
-    const handleAddSkill = () => {
-        if (currentSkill.trim() && !skills.includes(currentSkill.trim())) {
-            setSkills([...skills, currentSkill.trim()]);
-            setCurrentSkill("");
-        }
-    };
-
-    const handleRemoveSkill = (skillToRemove: string) => {
-        setSkills(skills.filter(skill => skill !== skillToRemove));
-    };
-
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            handleAddSkill();
-        }
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({
-            ...formData,
-            skills,
-            status: "AVAILABLE",
-            joinedDate: new Date().toISOString(),
-        });
+        setLoading(true);
+        try {
+            await createCandidate({
+                full_name: formData.full_name,
+                email: formData.email,
+                phone: formData.phone,
+                address: formData.address,
+                birth_date: formData.birth_date ? `${formData.birth_date}T00:00:00Z` : "",
+                source: formData.source,
+                citizen_id: formData.citizen_id || undefined,
+            });
+            router.push("/org/candidates");
+        } catch (error) {
+            console.error("Failed to create candidate:", error);
+            alert("Failed to create candidate. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const isFormValid = () => {
         return (
-            formData.name &&
+            formData.full_name &&
             formData.email &&
             formData.phone &&
-            formData.location &&
-            formData.experience &&
-            formData.education
+            formData.address &&
+            formData.birth_date &&
+            formData.source
         );
     };
-
-    const onSave = (data: any) => {
-
-    }
 
     const onBack = () => {
         router.back();
@@ -113,12 +98,12 @@ export default function CandidateAdd() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="md:col-span-2">
-                            <Label htmlFor="name">Full Name *</Label>
+                            <Label htmlFor="full_name">Full Name *</Label>
                             <Input
-                                id="name"
+                                id="full_name"
                                 placeholder="e.g. Ahmad Rizki"
-                                value={formData.name}
-                                onChange={(e) => handleInputChange("name", e.target.value)}
+                                value={formData.full_name}
+                                onChange={(e) => handleInputChange("full_name", e.target.value)}
                                 required
                             />
                         </div>
@@ -148,18 +133,49 @@ export default function CandidateAdd() {
                         </div>
 
                         <div>
-                            <Label htmlFor="location">Location *</Label>
+                            <Label htmlFor="birth_date" className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-pink-600" />
+                                Birth Date *
+                            </Label>
                             <Input
-                                id="location"
-                                placeholder="e.g. Jakarta Selatan"
-                                value={formData.location}
-                                onChange={(e) => handleInputChange("location", e.target.value)}
+                                id="birth_date"
+                                type="date"
+                                value={formData.birth_date}
+                                onChange={(e) => handleInputChange("birth_date", e.target.value)}
                                 required
                             />
                         </div>
 
                         <div>
-                            <Label htmlFor="source">Source</Label>
+                            <Label htmlFor="citizen_id">Citizen ID (KTP)</Label>
+                            <Input
+                                id="citizen_id"
+                                placeholder="e.g. 3201234567890001"
+                                value={formData.citizen_id}
+                                onChange={(e) => handleInputChange("citizen_id", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <Label htmlFor="address" className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-pink-600" />
+                                Address *
+                            </Label>
+                            <Textarea
+                                id="address"
+                                placeholder="e.g. Jl. Sudirman No. 1, Jakarta Selatan"
+                                value={formData.address}
+                                onChange={(e) => handleInputChange("address", e.target.value)}
+                                rows={3}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="source" className="flex items-center gap-2">
+                                <Briefcase className="w-4 h-4 text-pink-600" />
+                                Source *
+                            </Label>
                             <Select value={formData.source} onValueChange={(value) => handleInputChange("source", value)}>
                                 <SelectTrigger id="source">
                                     <SelectValue placeholder="Select source..." />
@@ -177,125 +193,6 @@ export default function CandidateAdd() {
                     </div>
                 </div>
 
-                {/* Professional Information */}
-                <div className="bg-white rounded-xl border border-gray-200 p-8">
-                    <div className="flex items-center gap-2 mb-6">
-                        <Briefcase className="w-5 h-5 text-pink-600" />
-                        <h3 className="font-semibold text-gray-900">Professional Information</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <Label htmlFor="experience">Years of Experience *</Label>
-                            <Input
-                                id="experience"
-                                placeholder="e.g. 3 years"
-                                value={formData.experience}
-                                onChange={(e) => handleInputChange("experience", e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <Label htmlFor="education">Education *</Label>
-                            <Input
-                                id="education"
-                                placeholder="e.g. S1 Informatika - Universitas Indonesia"
-                                value={formData.education}
-                                onChange={(e) => handleInputChange("education", e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <Label htmlFor="expectedSalary">Expected Salary</Label>
-                            <Input
-                                id="expectedSalary"
-                                placeholder="e.g. Rp 10.000.000"
-                                value={formData.expectedSalary}
-                                onChange={(e) => handleInputChange("expectedSalary", e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <Label htmlFor="availability">Availability</Label>
-                            <Select value={formData.availability} onValueChange={(value) => handleInputChange("availability", value)}>
-                                <SelectTrigger id="availability">
-                                    <SelectValue placeholder="Select availability..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Immediate">Immediate</SelectItem>
-                                    <SelectItem value="1 week notice">1 week notice</SelectItem>
-                                    <SelectItem value="2 weeks notice">2 weeks notice</SelectItem>
-                                    <SelectItem value="1 month notice">1 month notice</SelectItem>
-                                    <SelectItem value="2 months notice">2 months notice</SelectItem>
-                                    <SelectItem value="3 months notice">3 months notice</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <Label htmlFor="summary">Professional Summary</Label>
-                            <Textarea
-                                id="summary"
-                                placeholder="Brief description of the candidate's background, skills, and experience..."
-                                value={formData.summary}
-                                onChange={(e) => handleInputChange("summary", e.target.value)}
-                                rows={4}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Skills */}
-                <div className="bg-white rounded-xl border border-gray-200 p-8">
-                    <div className="flex items-center gap-2 mb-6">
-                        <GraduationCap className="w-5 h-5 text-pink-600" />
-                        <h3 className="font-semibold text-gray-900">Skills & Technologies</h3>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="Add a skill (e.g. React, Node.js, etc.)"
-                                value={currentSkill}
-                                onChange={(e) => setCurrentSkill(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                            />
-                            <Button
-                                type="button"
-                                onClick={handleAddSkill}
-                                variant="outline"
-                                className="shrink-0"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add
-                            </Button>
-                        </div>
-
-                        {skills.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                {skills.map((skill) => (
-                                    <Badge
-                                        key={skill}
-                                        variant="secondary"
-                                        className="bg-pink-50 text-pink-700 px-3 py-1.5 text-sm"
-                                    >
-                                        {skill}
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveSkill(skill)}
-                                            className="ml-2 hover:text-pink-900"
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </Badge>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-3">
                     <Button
@@ -307,10 +204,10 @@ export default function CandidateAdd() {
                     </Button>
                     <Button
                         type="submit"
-                        disabled={!isFormValid()}
+                        disabled={!isFormValid() || loading}
                         className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
                     >
-                        Add Candidate
+                        {loading ? "Saving..." : "Add Candidate"}
                     </Button>
                 </div>
             </form>

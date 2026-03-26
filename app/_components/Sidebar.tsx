@@ -11,6 +11,7 @@ import {
 import {
     Bell,
     Briefcase,
+    CalendarDays,
     ClipboardList,
     DollarSign,
     LayoutDashboard,
@@ -19,8 +20,9 @@ import {
     UserPlus,
     Users
 } from "lucide-react";
-import {useState} from "react";
+import {useState, useEffect} from "react";
 import {useRouter} from "next/navigation";
+import { getUserProfile } from "@/services/user.service";
 
 interface AppSidebarProps {
     activeMenu: string;
@@ -31,9 +33,9 @@ type PageType = "dashboard" | "manpower-requests" | "manpower-create" | "manpowe
 
 const organizationMenuItems = [
     { title: "Overview", icon: LayoutDashboard, page: "overview" as PageType },
-    { title: "Employees", icon: Users, page: "overview" as PageType },
-    { title: "Teams", icon: Briefcase, page: "overview" as PageType },
-    { title: "Recruitment", icon: UserPlus, page: "overview" as PageType },
+    { title: "Employees", icon: Users, page: "employees" as PageType },
+    { title: "Assignments", icon: Briefcase, page: "assignments" as PageType },
+    { title: "Attendance", icon: CalendarDays, page: "attendance" as PageType },
     { title: "Manpower Requests", icon: ClipboardList, page: "manpower-request" as PageType },
     { title: "Talent Pool", icon: UserCircle, page: "candidates" as PageType },
 ];
@@ -43,7 +45,7 @@ const managementMenuItems = [
 ];
 
 const supportMenuItems = [
-    { title: "Payroll", icon: DollarSign, page: "overview" as PageType },
+    { title: "Payroll", icon: DollarSign, page: "payroll" as PageType },
     { title: "Settings", icon: Settings, page: "overview" as PageType },
 ];
 
@@ -138,7 +140,14 @@ const SidebarLayout = (
     const [currentPage, setCurrentPage] = useState<PageType>("dashboard");
     const [activeMenu, setActiveMenu] = useState("Recruitment");
     const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+    const [userProfile, setUserProfile] = useState<{ name: string; email: string; role?: string } | null>(null);
     const route = useRouter();
+
+    useEffect(() => {
+        getUserProfile()
+            .then((res) => setUserProfile(res.data ?? res))
+            .catch(() => {});
+    }, []);
 
     const handleMenuClick = (title: string, page: PageType) => {
         setActiveMenu(title);
@@ -173,11 +182,13 @@ const SidebarLayout = (
                                     {/* User Profile */}
                                     <div className="flex items-center gap-3">
                                         <div className="text-right">
-                                            <p className="text-sm font-semibold text-gray-900">Sarah Connor</p>
-                                            <p className="text-xs text-gray-600">HR Director</p>
+                                            <p className="text-sm font-semibold text-gray-900">{userProfile?.name ?? "User"}</p>
+                                            <p className="text-xs text-gray-600">{userProfile?.role ?? userProfile?.email ?? ""}</p>
                                         </div>
                                         <div className="w-10 h-10 bg-gradient-to-br from-pink-600 to-rose-600 rounded-full flex items-center justify-center">
-                                            <span className="text-white font-semibold text-sm">SC</span>
+                                            <span className="text-white font-semibold text-sm">
+                                                {userProfile?.name ? userProfile.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "U"}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

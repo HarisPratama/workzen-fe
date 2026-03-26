@@ -34,3 +34,14 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## About
+
+**Workzen is a Software-as-a-Service (SaaS) platform designed to streamline and modernize the recruitment process for organizations. It provides an end-to-end Applicant Tracking System (ATS) that helps companies manage candidates, job requests, interviews, and hiring workflows in a centralized and scalable environment.
+
+The platform enables HR teams to create and manage manpower requests, track candidate applications across multiple stages, schedule and evaluate interviews, and handle job offers efficiently. It also supports document management, allowing recruiters to store and organize candidate files such as resumes and identification documents.
+
+Built with a multi-tenant architecture, the system ensures data isolation and scalability, making it suitable for businesses of various sizes. The platform is designed with a focus on performance, maintainability, and clean system design, leveraging modern technologies for both frontend and backend development.
+
+This SaaS solution aims to simplify hiring operations, improve collaboration between stakeholders, and provide a structured pipeline for talent acquisition—from initial application to final hiring decision.**
+

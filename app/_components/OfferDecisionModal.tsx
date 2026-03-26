@@ -1,5 +1,6 @@
 "use client"
 import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -9,26 +10,61 @@ import {
     DialogTitle,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
+import { updateOffer } from "@/services/offer.service";
 
 interface OfferDecisionModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onAccept: () => void;
-    onDecline: () => void;
-    offer: any | null;
+    onDecisionMade?: () => void;
+    offer: {
+        id?: number;
+        decision?: string;
+        candidateName?: string;
+        position?: string;
+    } | null;
 }
 
 export function OfferDecisionModal({
-                                       open,
-                                       onOpenChange,
-                                       onAccept,
-                                       onDecline,
-                                       offer,
-                                   }: OfferDecisionModalProps) {
+    open,
+    onOpenChange,
+    onDecisionMade,
+    offer,
+}: OfferDecisionModalProps) {
+    const [loading, setLoading] = useState(false);
 
     if (!offer) return null;
 
     const isAccepting = offer.decision === "ACCEPT";
+
+    const handleAccept = async () => {
+        if (!offer.id) return;
+        setLoading(true);
+        try {
+            await updateOffer(String(offer.id), { status: "accepted" });
+            onOpenChange(false);
+            onDecisionMade?.();
+        } catch (error) {
+            console.error("Failed to accept offer:", error);
+            alert("Failed to update offer. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDecline = async () => {
+        if (!offer.id) return;
+        setLoading(true);
+        try {
+            await updateOffer(String(offer.id), { status: "rejected" });
+            onOpenChange(false);
+            onDecisionMade?.();
+        } catch (error) {
+            console.error("Failed to decline offer:", error);
+            alert("Failed to update offer. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,7 +86,6 @@ export function OfferDecisionModal({
                 </DialogHeader>
 
                 <div className="py-4">
-                    {/* Candidate Info */}
                     <div className={`rounded-lg p-4 border-2 ${
                         isAccepting
                             ? "bg-green-50 border-green-200"
@@ -85,17 +120,19 @@ export function OfferDecisionModal({
                     </Button>
                     {isAccepting ? (
                         <Button
-                            onClick={onAccept}
+                            onClick={handleAccept}
+                            disabled={loading}
                             className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                         >
-                            Convert to Employee
+                            {loading ? "Processing..." : "Convert to Employee"}
                         </Button>
                     ) : (
                         <Button
-                            onClick={onDecline}
+                            onClick={handleDecline}
+                            disabled={loading}
                             className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
                         >
-                            Confirm Decline
+                            {loading ? "Processing..." : "Confirm Decline"}
                         </Button>
                     )}
                 </DialogFooter>

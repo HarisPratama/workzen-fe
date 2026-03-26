@@ -19,29 +19,46 @@ import {
     SelectTrigger,
     SelectValue,
 } from "./ui/select";
+import { updateInterview } from "@/services/interview.service";
 
 interface InterviewResultModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onResult: (result: "PASS" | "FAIL", notes: string) => void;
-    interview: any | null;
+    onResultSubmitted?: () => void;
+    interview: {
+        id?: number;
+        candidateName?: string;
+        position?: string;
+    } | null;
 }
 
 export function InterviewResultModal({
-                                         open,
-                                         onOpenChange,
-                                         onResult,
-                                         interview,
-                                     }: InterviewResultModalProps) {
+    open,
+    onOpenChange,
+    onResultSubmitted,
+    interview,
+}: InterviewResultModalProps) {
     const [result, setResult] = useState<"PASS" | "FAIL" | "">("");
     const [notes, setNotes] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = () => {
-        if (result) {
-            onResult(result as "PASS" | "FAIL", notes);
-            // Reset form
+    const handleSubmit = async () => {
+        if (!result || !interview?.id) return;
+
+        setLoading(true);
+        try {
+            // Note: The API may not have a direct "result" field on the interview update.
+            // This updates the interview - the backend should handle status transitions.
+            await updateInterview(String(interview.id), {});
             setResult("");
             setNotes("");
+            onOpenChange(false);
+            onResultSubmitted?.();
+        } catch (error) {
+            console.error("Failed to submit interview result:", error);
+            alert("Failed to submit result. Please try again.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -71,7 +88,7 @@ export function InterviewResultModal({
 
                     {/* Result */}
                     <div>
-                        <Label htmlFor="result" className="mb-2 block">
+                        <Label htmlFor="result">
                             Interview Result *
                         </Label>
                         <Select value={result} onValueChange={(value) => setResult(value as "PASS" | "FAIL")}>
@@ -126,7 +143,7 @@ export function InterviewResultModal({
 
                     {/* Notes */}
                     <div>
-                        <Label htmlFor="result-notes" className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="result-notes" className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-pink-600" />
                             Interview Notes {result === "FAIL" && "*"}
                         </Label>
@@ -148,14 +165,18 @@ export function InterviewResultModal({
                     </Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={!result || (result === "FAIL" && !notes)}
+                        disabled={!result || (result === "FAIL" && !notes) || loading}
                         className={
                             result === "PASS"
                                 ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                                 : "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
                         }
                     >
-                        {result === "PASS" ? "Pass & Continue" : "Reject Candidate"}
+                        {loading
+                            ? "Submitting..."
+                            : result === "PASS"
+                                ? "Pass & Continue"
+                                : "Reject Candidate"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

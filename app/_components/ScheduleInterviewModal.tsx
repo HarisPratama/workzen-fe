@@ -1,5 +1,5 @@
 "use client"
-import { Calendar, Clock, User, FileText } from "lucide-react";
+import { Calendar, Clock, User, FileText, MapPin, Link } from "lucide-react";
 import { useState } from "react";
 import {
     Dialog,
@@ -20,37 +20,56 @@ import {
     SelectTrigger,
     SelectValue,
 } from "./ui/select";
+import { Combobox } from "./ui/combobox";
+import { createInterview, type CreateInterviewPayload } from "@/services/interview.service";
+import { getEmployees } from "@/services/employee.service";
+import { useFetch } from "@/hooks/use-fetch";
 
 interface ScheduleInterviewModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSchedule: (data: InterviewScheduleData) => void;
+    onScheduled?: () => void;
+    candidateApplicationId?: number;
+    manpowerRequestId?: number;
 }
 
 export interface InterviewScheduleData {
     date: string;
     time: string;
-    interviewer: string;
+    type: string;
+    duration_minutes: string;
+    location: string;
+    meeting_link: string;
+    interviewer_id: string;
     notes: string;
 }
 
-const mockInterviewers = [
-    "John Tech Lead",
-    "Sarah Manager",
-    "David Senior Engineer",
-    "Lisa HR Director",
-    "Michael Product Manager",
-];
-
 export function ScheduleInterviewModal({
-                                           open,
-                                           onOpenChange,
-                                           onSchedule,
-                                       }: ScheduleInterviewModalProps) {
+    open,
+    onOpenChange,
+    onScheduled,
+    candidateApplicationId,
+    manpowerRequestId,
+}: ScheduleInterviewModalProps) {
+    const { data: employeeData, loading: empLoading } = useFetch(
+        () => getEmployees({ limit: 100 }), []
+    );
+
+    const employeeOptions = (employeeData?.data ?? []).map((e: { id: number; name: string }) => ({
+        value: String(e.id),
+        label: e.name,
+        sublabel: `ID: ${e.id}`,
+    }));
+
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<InterviewScheduleData>({
         date: "",
         time: "",
-        interviewer: "",
+        type: "",
+        duration_minutes: "60",
+        location: "",
+        meeting_link: "",
+        interviewer_id: "",
         notes: "",
     });
 
@@ -58,20 +77,53 @@ export function ScheduleInterviewModal({
         setFormData({ ...formData, [field]: value });
     };
 
-    const handleSubmit = () => {
-        if (formData.date && formData.time && formData.interviewer) {
-            onSchedule(formData);
-            // Reset form
-            setFormData({
-                date: "",
-                time: "",
-                interviewer: "",
-                notes: "",
-            });
+    const resetForm = () => {
+        setFormData({
+            date: "",
+            time: "",
+            type: "",
+            duration_minutes: "60",
+            location: "",
+            meeting_link: "",
+            interviewer_id: "",
+            notes: "",
+        });
+    };
+
+    const handleSubmit = async () => {
+        if (!formData.date || !formData.time || !formData.type || !candidateApplicationId) return;
+
+        setLoading(true);
+        try {
+            const scheduled_at = `${formData.date}T${formData.time}:00Z`;
+
+            const payload: CreateInterviewPayload = {
+                candidate_application_id: candidateApplicationId,
+                interviewer_id: Number(formData.interviewer_id) || 1,
+                scheduled_at,
+                duration_minutes: Number(formData.duration_minutes) || 60,
+                type: formData.type as CreateInterviewPayload["type"],
+                location: formData.location || undefined,
+                meeting_link: formData.meeting_link || undefined,
+            };
+
+            if (manpowerRequestId) {
+                payload.manpower_request_id = manpowerRequestId;
+            }
+
+            await createInterview(payload);
+            resetForm();
+            onOpenChange(false);
+            onScheduled?.();
+        } catch (error) {
+            console.error("Failed to schedule interview:", error);
+            alert("Failed to schedule interview. Please try again.");
+        } finally {
+            setLoading(false);
         }
     };
 
-    const isFormValid = formData.date && formData.time && formData.interviewer;
+    const isFormValid = formData.date && formData.time && formData.type;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,7 +138,7 @@ export function ScheduleInterviewModal({
                 <div className="space-y-5 py-4">
                     {/* Date */}
                     <div>
-                        <Label htmlFor="interview-date" className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="interview-date" className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-pink-600" />
                             Interview Date *
                         </Label>
@@ -101,7 +153,7 @@ export function ScheduleInterviewModal({
 
                     {/* Time */}
                     <div>
-                        <Label htmlFor="interview-time" className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="interview-time" className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-pink-600" />
                             Interview Time *
                         </Label>
@@ -113,41 +165,87 @@ export function ScheduleInterviewModal({
                         />
                     </div>
 
-                    {/* Interviewer */}
+                    {/* Type */}
                     <div>
-                        <Label htmlFor="interviewer" className="flex items-center gap-2 mb-2">
+                        <Label htmlFor="interview-type" className="flex items-center gap-2">
                             <User className="w-4 h-4 text-pink-600" />
-                            Interviewer *
+                            Interview Type *
                         </Label>
                         <Select
-                            value={formData.interviewer}
-                            onValueChange={(value) => handleInputChange("interviewer", value)}
+                            value={formData.type}
+                            onValueChange={(value) => handleInputChange("type", value)}
                         >
-                            <SelectTrigger id="interviewer">
-                                <SelectValue placeholder="Select interviewer..." />
+                            <SelectTrigger id="interview-type">
+                                <SelectValue placeholder="Select interview type..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {mockInterviewers.map((interviewer) => (
-                                    <SelectItem key={interviewer} value={interviewer}>
-                                        {interviewer}
-                                    </SelectItem>
-                                ))}
+                                <SelectItem value="phone">Phone</SelectItem>
+                                <SelectItem value="video">Video</SelectItem>
+                                <SelectItem value="in-person">In Person</SelectItem>
+                                <SelectItem value="technical">Technical</SelectItem>
+                                <SelectItem value="hr">HR</SelectItem>
+                                <SelectItem value="final">Final</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {/* Notes */}
+                    {/* Interviewer */}
                     <div>
-                        <Label htmlFor="interview-notes" className="flex items-center gap-2 mb-2">
-                            <FileText className="w-4 h-4 text-pink-600" />
-                            Notes (Optional)
+                        <Label className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-pink-600" />
+                            Interviewer
                         </Label>
-                        <Textarea
-                            id="interview-notes"
-                            placeholder="Add any special instructions or topics to cover..."
-                            value={formData.notes}
-                            onChange={(e) => handleInputChange("notes", e.target.value)}
-                            rows={3}
+                        <Combobox
+                            options={employeeOptions}
+                            value={formData.interviewer_id}
+                            onValueChange={(v) => handleInputChange("interviewer_id", v)}
+                            placeholder="Select interviewer..."
+                            searchPlaceholder="Search by name..."
+                            emptyText="No employees found."
+                            loading={empLoading}
+                        />
+                    </div>
+
+                    {/* Duration */}
+                    <div>
+                        <Label htmlFor="duration">
+                            Duration (minutes)
+                        </Label>
+                        <Input
+                            id="duration"
+                            type="number"
+                            min="15"
+                            max="480"
+                            value={formData.duration_minutes}
+                            onChange={(e) => handleInputChange("duration_minutes", e.target.value)}
+                        />
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                        <Label htmlFor="location" className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-pink-600" />
+                            Location (Optional)
+                        </Label>
+                        <Input
+                            id="location"
+                            placeholder="e.g. Office Jakarta, Room 3A"
+                            value={formData.location}
+                            onChange={(e) => handleInputChange("location", e.target.value)}
+                        />
+                    </div>
+
+                    {/* Meeting Link */}
+                    <div>
+                        <Label htmlFor="meeting-link" className="flex items-center gap-2">
+                            <Link className="w-4 h-4 text-pink-600" />
+                            Meeting Link (Optional)
+                        </Label>
+                        <Input
+                            id="meeting-link"
+                            placeholder="e.g. https://meet.google.com/..."
+                            value={formData.meeting_link}
+                            onChange={(e) => handleInputChange("meeting_link", e.target.value)}
                         />
                     </div>
                 </div>
@@ -158,10 +256,10 @@ export function ScheduleInterviewModal({
                     </Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={!isFormValid}
+                        disabled={!isFormValid || loading}
                         className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
                     >
-                        Schedule Interview
+                        {loading ? "Scheduling..." : "Schedule Interview"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
