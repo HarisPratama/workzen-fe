@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  workzen-fe:
+    image: ghcr.io/harispratama/workzen-fe:latest
+    container_name: workzen-fe
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.workzen.web.id
+    networks:
+      - workzen-network
+
+networks:
+  workzen-network:
+    external: true

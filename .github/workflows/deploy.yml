@@ -1,0 +1,107 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        script: |
+          set -e
+          
+          echo "=========================================="
+          echo "Deploying Workzen Frontend"
+          echo "=========================================="
+          
+          cd /root/.openclaw/workspace/workzen-fe
+          
+          # Pull latest changes
+          echo "Pulling latest code..."
+          git pull origin main
+          
+          # Login to GitHub Container Registry
+          echo "Logging in to GitHub Container Registry..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          
+          # Pull latest image
+          echo "Pulling latest Docker image..."
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          
+          # Stop and remove existing container
+          echo "Stopping existing container..."
+          docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
+          
+          # Start services
+          echo "Starting services..."
+          docker-compose -f docker-compose.prod.yml up -d
+          
+          # Verify deployment
+          echo "Verifying deployment..."
+          sleep 5
+          if curl -sf http://localhost:3000 > /dev/null; then
+            echo "✓ Frontend is responding on port 3000"
+          else
+            echo "✗ Frontend is not responding"
+            docker logs workzen-fe --tail 50
+            exit 1
+          fi
+          
+          # Cleanup old images
+          echo "Cleaning up old images..."
+          docker image prune -af --filter "until=168h"
+          
+          echo "=========================================="
+          echo "Deployment completed successfully!"
+          echo "=========================================="
+          echo "Application URL: https://workzen.web.id"
+          echo "=========================================="
