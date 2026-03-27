@@ -3,6 +3,11 @@ FROM node:23-alpine AS builder
 
 WORKDIR /app
 
+# Accept build argument for API URL
+# This value is passed from GitHub Actions using the NEXT_PUBLIC_API_URL secret
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 # Install dependencies first (for better caching)
 COPY package*.json ./
 RUN npm ci
