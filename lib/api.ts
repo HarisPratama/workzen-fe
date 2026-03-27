@@ -7,19 +7,11 @@ export async function apiFetch(endpoint: string, options?: RequestInit) {
     })
 
     if (res.status === 401) {
-
-        // coba refresh token
+        // try refresh token
         const refresh = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/auth/refresh`, {
             method: "POST",
-            headers: {
-                ...options?.headers
-            },
             credentials: "include"
         })
-
-        console.log(options, "=====", refresh)
-        const data = await refresh.json()
-        console.log(data, '<<< data')
 
         if (refresh.ok) {
             res = await fetch(url, {
@@ -27,7 +19,11 @@ export async function apiFetch(endpoint: string, options?: RequestInit) {
                 credentials: "include",
             })
         } else {
-            throw new Error("UNAUTHORIZED");
+            // redirect to login
+            if (typeof window !== "undefined") {
+                window.location.href = "/login";
+            }
+            throw new Error("Session expired. Please login again.");
         }
     }
 

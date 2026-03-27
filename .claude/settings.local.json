@@ -14,7 +14,10 @@
       "Bash(npm run:*)",
       "Bash(curl:*)",
       "Bash(python3 -m json.tool)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(ls -la /Users/devita/Documents/saas/hris-fe/*.ts /Users/devita/Documents/saas/hris-fe/*.tsx)",
+      "Bash(find /Users/devita/Documents/saas/hris-fe/services -type f -name *.ts)",
+      "Bash(cat /Users/devita/Documents/saas/hris-fe/.env*)"
     ]
   }
 }

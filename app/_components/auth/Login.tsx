@@ -2,41 +2,31 @@
 import {Input} from "@/app/_components/ui/input";
 import {Label} from "@/app/_components/ui/label";
 import {useState} from "react";
-import {useRouter} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import {useForm} from "react-hook-form";
 import {loginApi} from "@/services/auth.service";
+import { toast } from "sonner";
 
 export default function LoginComponent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectTo = searchParams.get("redirect") || "/org/overview";
 
     const { register, handleSubmit } = useForm();
-    const [form, setForm] = useState({ email: "", password: "" });
     const [showPass, setShowPass] = useState(false);
-    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
 
     const onSubmit = async (data:any) => {
         setLoading(true)
-        setErrors({})
-        console.log("Login attempt:", data)
 
         try {
-            const response = await loginApi(data)
-            console.log("Login success:", response)
+            await loginApi(data)
             setSuccess(true)
-            // Small delay to show success message before redirect
-            setTimeout(() => {
-                // Use router.push for SPA navigation
-                router.push("/org/overview")
-                // Refresh to ensure auth state is updated
-                router.refresh()
-            }, 1500)
-        } catch(e: any){
-            console.error("Login error:", e)
-            setErrors({ 
-                submit: e?.response?.data?.message || e?.message || "Login failed. Please check your credentials." 
-            })
+            router.push(redirectTo)
+            router.refresh()
+        } catch(err){
+            toast.error(err instanceof Error ? err.message : "Login failed. Please check your credentials.")
         } finally {
             setLoading(false)
         }

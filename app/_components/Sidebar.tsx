@@ -16,6 +16,7 @@ import {
     ClipboardList,
     DollarSign,
     LayoutDashboard,
+    LogOut,
     Search, Settings,
     TrendingUp, UserCircle,
     UserPlus,
@@ -24,6 +25,8 @@ import {
 import {useState, useEffect} from "react";
 import {useRouter} from "next/navigation";
 import { getUserProfile } from "@/services/user.service";
+import { logout } from "@/services/auth.service";
+import { toast } from "sonner";
 
 interface AppSidebarProps {
     activeMenu: string;
@@ -151,6 +154,16 @@ const SidebarLayout = (
             .catch(() => {});
     }, []);
 
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } catch {
+            // ignore logout API error
+        } finally {
+            window.location.href = "/login";
+        }
+    };
+
     const handleMenuClick = (title: string, page: PageType) => {
         setActiveMenu(title);
         setCurrentPage(page);
@@ -192,6 +205,13 @@ const SidebarLayout = (
                                                 {userProfile?.name ? userProfile.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "U"}
                                             </span>
                                         </div>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
+                                            title="Logout"
+                                        >
+                                            <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-500" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
