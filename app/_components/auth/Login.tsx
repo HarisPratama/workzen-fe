@@ -27,8 +27,10 @@ export default function LoginComponent() {
             setSuccess(true)
             // Small delay to show success message before redirect
             setTimeout(() => {
-                // Force full page navigation to ensure dashboard loads properly
-                window.location.href = "/org/overview"
+                // Use router.push for SPA navigation
+                router.push("/org/overview")
+                // Refresh to ensure auth state is updated
+                router.refresh()
             }, 1500)
         } catch(e: any){
             console.error("Login error:", e)
