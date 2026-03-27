@@ -5,6 +5,7 @@ WORKDIR /app
 
 # Accept build argument for API URL
 # This value is passed from GitHub Actions using the NEXT_PUBLIC_API_URL secret
+# Trigger CI/CD: Updated CORS handling in nginx config - Mar 27, 2025
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
