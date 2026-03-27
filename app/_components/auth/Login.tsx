@@ -18,16 +18,26 @@ export default function LoginComponent() {
 
     const onSubmit = async (data:any) => {
         setLoading(true)
-        console.log(data)
+        setErrors({})
+        console.log("Login attempt:", data)
 
         try {
-            await loginApi(data)
-            router.push("/org/overview")
-        } catch(e){
-            console.error(e)
+            const response = await loginApi(data)
+            console.log("Login success:", response)
+            setSuccess(true)
+            // Small delay to show success message before redirect
+            setTimeout(() => {
+                // Force full page navigation to ensure dashboard loads properly
+                window.location.href = "/org/overview"
+            }, 1500)
+        } catch(e: any){
+            console.error("Login error:", e)
+            setErrors({ 
+                submit: e?.response?.data?.message || e?.message || "Login failed. Please check your credentials." 
+            })
+        } finally {
+            setLoading(false)
         }
-
-        setLoading(false)
     }
 
     return (
