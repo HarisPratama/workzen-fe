@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { ArrowLeft, User, CreditCard, Phone } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/app/_components/ui/button";
@@ -26,9 +27,9 @@ export default function CreateEmployeePage() {
         try {
             await createEmployee(formData);
             router.push("/org/employees");
-        } catch (error) {
-            console.error("Failed to create employee:", error);
-            alert("Failed to create employee. Please try again.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to create employee. Please try again.");
         } finally {
             setLoading(false);
         }

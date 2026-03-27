@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import {
     ArrowLeft,
     Phone,
@@ -367,8 +368,8 @@ export default function CandidatePipeline() {
             await updateCandidateApplication(candidate.candidate_application_id, {
                 status: confirmDialog.toStatus,
             });
-        } catch (error) {
-            console.error("Failed to update status:", error);
+        } catch (err) {
+            console.error(err);
             // Revert on failure
             setCandidates((prev) =>
                 prev.map((c) =>
@@ -377,7 +378,7 @@ export default function CandidatePipeline() {
                         : c
                 )
             );
-            alert("Failed to update candidate status.");
+            toast.error(err instanceof Error ? err.message : "Failed to update candidate status.");
         }
 
         setConfirmDialog(null);
@@ -402,9 +403,9 @@ export default function CandidatePipeline() {
             setAddCandidateOpen(false);
             setSelectedCandidateId("");
             fetchCandidates();
-        } catch (error) {
-            console.error("Failed to add candidate:", error);
-            alert("Failed to add candidate.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to add candidate.");
         } finally {
             setAddCandidateLoading(false);
         }

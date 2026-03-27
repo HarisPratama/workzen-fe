@@ -23,7 +23,8 @@ export async function getAttendances(data: GetAttendancesParams = {}) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get attendances.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get attendances.");
     }
 
     return resp.json();
@@ -31,7 +32,7 @@ export async function getAttendances(data: GetAttendancesParams = {}) {
 
 export async function getDetailAttendance(id: string) {
     const resp = await apiFetch(`attendances/${id}`, { method: "GET" });
-    if (!resp.ok) throw new Error("Failed to get attendance detail.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to get attendance detail."); }
     return resp.json();
 }
 
@@ -41,13 +42,13 @@ export async function getAttendancesByEmployee(employeeId: string, params?: { pa
     if (params?.limit) query.set("limit", String(params.limit));
 
     const resp = await apiFetch(`attendances/employee/${employeeId}?${query.toString()}`, { method: "GET" });
-    if (!resp.ok) throw new Error("Failed to get employee attendances.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to get employee attendances."); }
     return resp.json();
 }
 
 export async function getTodayAttendance(employeeId: string) {
     const resp = await apiFetch(`attendances/today/${employeeId}`, { method: "GET" });
-    if (!resp.ok) throw new Error("Failed to get today's attendance.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to get today's attendance."); }
     return resp.json();
 }
 
@@ -68,7 +69,7 @@ export async function createAttendance(payload: CreateAttendancePayload) {
         body: JSON.stringify(payload),
     });
 
-    if (!resp.ok) throw new Error("Failed to create attendance.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to create attendance."); }
     return resp.json();
 }
 
@@ -86,13 +87,13 @@ export async function updateAttendance(id: string, payload: UpdateAttendancePayl
         body: JSON.stringify(payload),
     });
 
-    if (!resp.ok) throw new Error("Failed to update attendance.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to update attendance."); }
     return resp.json();
 }
 
 export async function deleteAttendance(id: string) {
     const resp = await apiFetch(`attendances/${id}`, { method: "DELETE" });
-    if (!resp.ok) throw new Error("Failed to delete attendance.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to delete attendance."); }
     return resp.json();
 }
 
@@ -103,7 +104,7 @@ export async function checkIn(attendanceId: string, payload?: { check_in_time?: 
         body: JSON.stringify(payload ?? {}),
     });
 
-    if (!resp.ok) throw new Error("Failed to check in.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to check in."); }
     return resp.json();
 }
 
@@ -114,6 +115,6 @@ export async function checkOut(attendanceId: string, payload?: { check_out_time?
         body: JSON.stringify(payload ?? {}),
     });
 
-    if (!resp.ok) throw new Error("Failed to check out.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to check out."); }
     return resp.json();
 }

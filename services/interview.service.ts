@@ -32,7 +32,8 @@ export async function getInterviews(data: GetInterviewsParams = {}) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get interviews.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get interviews.");
     }
 
     return resp.json();
@@ -44,7 +45,8 @@ export async function getDetailInterview(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get interview detail.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get interview detail.");
     }
 
     return resp.json();
@@ -72,7 +74,8 @@ export async function createInterview(payload: CreateInterviewPayload) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to create interview.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to create interview.");
     }
 
     return resp.json();
@@ -99,7 +102,8 @@ export async function updateInterview(
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to update interview.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to update interview.");
     }
 
     return resp.json();
@@ -111,7 +115,8 @@ export async function deleteInterview(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to delete interview.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to delete interview.");
     }
 
     return resp.json();

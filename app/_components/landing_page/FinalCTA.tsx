@@ -1,4 +1,5 @@
 import Reveal, { Tag } from "@/app/_components/landing_page/Reveal";
+import Link from "next/link";
 
 export default function CTA() {
     return (
@@ -14,12 +15,12 @@ export default function CTA() {
                         Join 500+ outsourcing companies that have replaced their spreadsheets with WorkZen. Free to start, no credit card needed.
                     </p>
                     <div className="flex flex-wrap gap-4 justify-center">
-                        <a href="#" className="px-8 py-4 bg-white text-[#0f0f1a] font-bold rounded-xl hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-white/20 transition-all no-underline">
-                            🚀 Start Free Trial
-                        </a>
-                        <a href="#" className="px-8 py-4 bg-transparent text-white/70 font-semibold border border-white/15 rounded-xl hover:border-white/40 hover:text-white transition-all no-underline">
-                            Schedule a Demo →
-                        </a>
+                        <Link href="/register" className="px-8 py-4 bg-white text-[#0f0f1a] font-bold rounded-xl hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-white/20 transition-all no-underline">
+                            Start Free Trial
+                        </Link>
+                        <Link href="/register" className="px-8 py-4 bg-transparent text-white/70 font-semibold border border-white/15 rounded-xl hover:border-white/40 hover:text-white transition-all no-underline">
+                            Sign Up Now →
+                        </Link>
                     </div>
                 </Reveal>
             </div>

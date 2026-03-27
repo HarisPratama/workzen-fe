@@ -19,7 +19,8 @@ export async function getListClient(data: GetClientsParams = {}) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get list of clients.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get list of clients.");
     }
 
     return resp.json();
@@ -31,7 +32,8 @@ export async function getDetailClient(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get client detail.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get client detail.");
     }
 
     return resp.json();
@@ -50,7 +52,8 @@ export async function createClient(payload: CreateClientPayload) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to create client.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to create client.");
     }
 
     return resp.json();
@@ -69,7 +72,8 @@ export async function updateClient(id: string, payload: UpdateClientPayload) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to update client.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to update client.");
     }
 
     return resp.json();
@@ -81,7 +85,8 @@ export async function deleteClient(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to delete client.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to delete client.");
     }
 
     return resp.json();

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/app/_components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "WorkZen - HR & Recruitment SaaS Platform",
@@ -18,6 +19,7 @@ export default function RootLayout({
         className={''}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );

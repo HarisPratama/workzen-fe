@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { DollarSign, Calendar, FileText, Briefcase } from "lucide-react";
 import { useState } from "react";
 import {
@@ -96,9 +97,9 @@ export function CreateOfferModal({
             resetForm();
             onOpenChange(false);
             onCreated?.();
-        } catch (error) {
-            console.error("Failed to create offer:", error);
-            alert("Failed to create offer. Please try again.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to create offer. Please try again.");
         } finally {
             setLoading(false);
         }

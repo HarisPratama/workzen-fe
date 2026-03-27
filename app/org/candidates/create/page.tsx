@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { ArrowLeft, User, Mail, Phone, MapPin, Briefcase, Calendar } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/app/_components/ui/button";
@@ -46,9 +47,9 @@ export default function CandidateAdd() {
                 citizen_id: formData.citizen_id || undefined,
             });
             router.push("/org/candidates");
-        } catch (error) {
-            console.error("Failed to create candidate:", error);
-            alert("Failed to create candidate. Please try again.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to create candidate. Please try again.");
         } finally {
             setLoading(false);
         }

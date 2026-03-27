@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const Hero = ()=> {
     return (
         <section className="relative min-h-screen flex flex-col items-center text-center pt-32 pb-20 px-6 overflow-hidden">
@@ -32,11 +34,11 @@ const Hero = ()=> {
 
                 {/* CTAs */}
                 <div className="flex flex-wrap gap-3.5 justify-center mb-14 opacity-0 animate-[fadeUp_0.7s_0.6s_forwards]">
-                    <a href="#" className="inline-flex items-center gap-2 px-8 py-4 bg-[#F0266F] text-white font-bold rounded-xl shadow-[0_4px_24px_rgba(240,38,111,0.3)] hover:bg-[#ff4d8d] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(240,38,111,0.4)] transition-all no-underline text-base">
-                        🚀 Start Free Trial
-                    </a>
-                    <a href="#" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#1a1a2e] font-semibold rounded-xl border border-gray-200 hover:border-[#F0266F] hover:text-[#F0266F] hover:-translate-y-0.5 transition-all no-underline text-base">
-                        ▶ Request Demo
+                    <Link href="/register" className="inline-flex items-center gap-2 px-8 py-4 bg-[#F0266F] text-white font-bold rounded-xl shadow-[0_4px_24px_rgba(240,38,111,0.3)] hover:bg-[#ff4d8d] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(240,38,111,0.4)] transition-all no-underline text-base">
+                        Start Free Trial
+                    </Link>
+                    <a href="#pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#1a1a2e] font-semibold rounded-xl border border-gray-200 hover:border-[#F0266F] hover:text-[#F0266F] hover:-translate-y-0.5 transition-all no-underline text-base">
+                        View Pricing
                     </a>
                 </div>
 

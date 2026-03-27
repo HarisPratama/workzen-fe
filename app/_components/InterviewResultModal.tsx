@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { CheckCircle, XCircle, FileText } from "lucide-react";
 import { useState } from "react";
 import {
@@ -54,9 +55,9 @@ export function InterviewResultModal({
             setNotes("");
             onOpenChange(false);
             onResultSubmitted?.();
-        } catch (error) {
-            console.error("Failed to submit interview result:", error);
-            alert("Failed to submit result. Please try again.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to submit result. Please try again.");
         } finally {
             setLoading(false);
         }

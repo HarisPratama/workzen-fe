@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { Plus, Search, Building2, Edit, Trash2, Eye, MapPin } from "lucide-react";
 import { useState } from "react";
 import {
@@ -53,8 +54,8 @@ export default function ClientsPage() {
             setCreateOpen(false);
             setCreateForm({ company_name: "", address: "" });
             refetch();
-        } catch {
-            alert("Failed to create client.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to create client.");
         } finally {
             setCreateLoading(false);
         }
@@ -74,8 +75,8 @@ export default function ClientsPage() {
             setEditOpen(false);
             setEditingClient(null);
             refetch();
-        } catch {
-            alert("Failed to update client.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update client.");
         } finally {
             setEditLoading(false);
         }
@@ -86,8 +87,8 @@ export default function ClientsPage() {
         try {
             await deleteClient(String(client.id));
             refetch();
-        } catch {
-            alert("Failed to delete client.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete client.");
         }
     };
 

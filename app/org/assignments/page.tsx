@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { Plus, Search, Trash2, Briefcase, MapPin, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import {
@@ -52,9 +53,9 @@ export default function AssignmentsPage() {
         try {
             await deleteAssignment(String(id));
             refetch();
-        } catch (error) {
-            console.error("Failed to delete assignment:", error);
-            alert("Failed to delete assignment.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to delete assignment.");
         }
     };
 
@@ -62,9 +63,9 @@ export default function AssignmentsPage() {
         try {
             await updateAssignment(String(id), { status: "completed", end_date: new Date().toISOString().split("T")[0] });
             refetch();
-        } catch (error) {
-            console.error("Failed to complete assignment:", error);
-            alert("Failed to complete assignment.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to complete assignment.");
         }
     };
 

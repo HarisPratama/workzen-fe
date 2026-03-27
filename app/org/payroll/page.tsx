@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { Plus, DollarSign, Eye, Trash2, Clock, CheckCircle, FileText, CreditCard, Edit } from "lucide-react";
 import { useState } from "react";
 import {
@@ -106,9 +107,9 @@ export default function PayrollPage() {
             setCreateModalOpen(false);
             setCreateForm({ employee_id: "", period_start: "", period_end: "", basic_salary: "", allowances: "", deductions: "", tax: "", notes: "" });
             refetch();
-        } catch (error) {
-            console.error("Failed to create payroll:", error);
-            alert("Failed to create payroll.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to create payroll.");
         } finally {
             setCreateLoading(false);
         }
@@ -118,9 +119,9 @@ export default function PayrollPage() {
         try {
             await processPayroll(id);
             refetch();
-        } catch (error) {
-            console.error("Failed to process payroll:", error);
-            alert("Failed to process payroll.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to process payroll.");
         }
     };
 
@@ -131,9 +132,9 @@ export default function PayrollPage() {
                 payment_method: "bank_transfer",
             });
             refetch();
-        } catch (error) {
-            console.error("Failed to mark as paid:", error);
-            alert("Failed to mark as paid.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to mark as paid.");
         }
     };
 
@@ -174,8 +175,8 @@ export default function PayrollPage() {
             });
             setEditOpen(false);
             refetch();
-        } catch {
-            alert("Failed to update payroll.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update payroll.");
         } finally {
             setEditLoading(false);
         }
@@ -288,7 +289,7 @@ export default function PayrollPage() {
                                                 <DropdownMenuItem className="text-red-600" onClick={async () => {
                                                     if (!confirm("Delete this payroll record?")) return;
                                                     try { await deletePayroll(payroll.id); refetch(); }
-                                                    catch { alert("Failed to delete payroll."); }
+                                                    catch (err) { toast.error(err instanceof Error ? err.message : "Failed to delete payroll."); }
                                                 }}>
                                                     <Trash2 className="w-4 h-4 mr-2" />Delete
                                                 </DropdownMenuItem>

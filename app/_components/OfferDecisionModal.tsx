@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import {
@@ -43,9 +44,9 @@ export function OfferDecisionModal({
             await updateOffer(String(offer.id), { status: "accepted" });
             onOpenChange(false);
             onDecisionMade?.();
-        } catch (error) {
-            console.error("Failed to accept offer:", error);
-            alert("Failed to update offer. Please try again.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to update offer. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -58,9 +59,9 @@ export function OfferDecisionModal({
             await updateOffer(String(offer.id), { status: "rejected" });
             onOpenChange(false);
             onDecisionMade?.();
-        } catch (error) {
-            console.error("Failed to decline offer:", error);
-            alert("Failed to update offer. Please try again.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to update offer. Please try again.");
         } finally {
             setLoading(false);
         }

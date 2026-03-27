@@ -32,7 +32,8 @@ export async function getOffers(data: GetOffersParams = {}) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get offers.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get offers.");
     }
 
     return resp.json();
@@ -44,7 +45,8 @@ export async function getDetailOffer(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get offer detail.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get offer detail.");
     }
 
     return resp.json();
@@ -75,7 +77,8 @@ export async function createOffer(payload: CreateOfferPayload) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to create offer.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to create offer.");
     }
 
     return resp.json();
@@ -98,7 +101,8 @@ export async function updateOffer(id: string, payload: UpdateOfferPayload) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to update offer.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to update offer.");
     }
 
     return resp.json();
@@ -110,7 +114,8 @@ export async function deleteOffer(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to delete offer.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to delete offer.");
     }
 
     return resp.json();

@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { Search, Clock, CheckCircle, XCircle, CalendarDays, Plus, Trash2, Edit } from "lucide-react";
 import { useState } from "react";
 import {
@@ -109,9 +110,9 @@ export default function AttendancePage() {
                 type: "regular", status: "present", check_in: "", check_out: "", notes: "",
             });
             refetch();
-        } catch (error) {
-            console.error("Failed to create attendance:", error);
-            alert("Failed to create attendance.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to create attendance.");
         } finally {
             setCreateLoading(false);
         }
@@ -122,9 +123,9 @@ export default function AttendancePage() {
         try {
             await deleteAttendance(id);
             refetch();
-        } catch (error) {
-            console.error("Failed to delete attendance:", error);
-            alert("Failed to delete attendance.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to delete attendance.");
         }
     };
 
@@ -161,8 +162,8 @@ export default function AttendancePage() {
             });
             setEditOpen(false);
             refetch();
-        } catch {
-            alert("Failed to update attendance.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update attendance.");
         } finally {
             setEditLoading(false);
         }

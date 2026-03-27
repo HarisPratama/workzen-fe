@@ -20,7 +20,8 @@ export async function getCandidates(data: GetCandidatesParams = {}) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get candidates.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get candidates.");
     }
 
     return resp.json();
@@ -32,7 +33,8 @@ export async function getDetailCandidate(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get candidate detail.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get candidate detail.");
     }
 
     return resp.json();
@@ -59,7 +61,8 @@ export async function createCandidate(payload: CreateCandidatePayload) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to create candidate.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to create candidate.");
     }
 
     return resp.json();
@@ -84,7 +87,8 @@ export async function updateCandidate(id: string, payload: UpdateCandidatePayloa
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to update candidate.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to update candidate.");
     }
 
     return resp.json();
@@ -96,7 +100,8 @@ export async function deleteCandidate(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to delete candidate.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to delete candidate.");
     }
 
     return resp.json();

@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { ArrowLeft, User, Briefcase, MapPin, Calendar, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/app/_components/ui/button";
@@ -77,9 +78,9 @@ export default function CreateAssignmentPage() {
                 notes: formData.notes || undefined,
             });
             router.push("/org/assignments");
-        } catch (error) {
-            console.error("Failed to create assignment:", error);
-            alert("Failed to create assignment.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to create assignment.");
         } finally {
             setLoading(false);
         }

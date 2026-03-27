@@ -1,25 +1,20 @@
 "use client";
 
-import { useTheme } from "next-themes";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import { Toaster as Sonner, ToasterProps } from "sonner";
+import { Toaster as Sonner } from "sonner";
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
-
+const Toaster = () => {
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster group"
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-        } as React.CSSProperties
-      }
-      {...props}
+      theme="light"
+      position="top-right"
+      richColors
+      closeButton
+      toastOptions={{
+        duration: 4000,
+        style: {
+          borderRadius: "12px",
+        },
+      }}
     />
   );
 };

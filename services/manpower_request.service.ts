@@ -35,7 +35,8 @@ export async function getManpowerRequest(
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get manpower-requests.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get manpower-requests.");
     }
 
     return resp.json();
@@ -48,7 +49,8 @@ export async function getDetailManpowerRequest(id: string) {
     })
 
     if (!resp.ok) {
-        throw new Error("Failed to get manpower-requests.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get manpower-requests.");
     }
 
     return resp.json();
@@ -68,7 +70,8 @@ export async function createManpowerRequest(
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to create manpower-requests.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to create manpower-requests.");
     }
 
     return resp.json();
@@ -93,7 +96,8 @@ export async function updateManpowerRequest(id: string, payload: UpdateManpowerR
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to update manpower request.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to update manpower request.");
     }
 
     return resp.json();
@@ -105,7 +109,8 @@ export async function deleteManpowerRequest(id: string) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to delete manpower request.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to delete manpower request.");
     }
 
     return resp.json();

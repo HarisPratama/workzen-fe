@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { Plus, Search, Eye, Edit, Trash2, Users, UserCheck, Phone } from "lucide-react";
 import { useState } from "react";
 import {
@@ -40,9 +41,9 @@ export default function EmployeesPage() {
         try {
             await deleteEmployee(String(id));
             refetch();
-        } catch (error) {
-            console.error("Failed to delete employee:", error);
-            alert("Failed to delete employee.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to delete employee.");
         }
     };
 

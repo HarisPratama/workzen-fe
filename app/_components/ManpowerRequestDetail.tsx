@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Building2,
@@ -124,8 +125,8 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
       });
       setEditOpen(false);
       onRefetch?.();
-    } catch {
-      alert("Failed to update manpower request.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update manpower request.");
     } finally {
       setEditLoading(false);
     }
@@ -136,8 +137,8 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
     try {
       await deleteManpowerRequest(String(manpowerRequest.id));
       router.push("/org/manpower-request");
-    } catch {
-      alert("Failed to delete manpower request.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete manpower request.");
     }
   };
 
@@ -225,9 +226,9 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
       setAddCandidateOpen(false);
       setSelectedCandidateId("");
       fetchCandidates();
-    } catch (error) {
-      console.error("Failed to add candidate:", error);
-      alert("Failed to add candidate to this request.");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to add candidate to this request.");
     } finally {
       setAddCandidateLoading(false);
     }

@@ -19,7 +19,8 @@ export async function getSubscriptionPlans(): Promise<{ data: SubscriptionPlan[]
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get subscription plans.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get subscription plans.");
     }
 
     return resp.json();
@@ -31,7 +32,8 @@ export async function getSubscriptionPlanDetail(id: string): Promise<{ data: Sub
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get subscription plan detail.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get subscription plan detail.");
     }
 
     return resp.json();
@@ -55,7 +57,8 @@ export async function getActiveSubscription(): Promise<{ data: Subscription }> {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get active subscription.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get active subscription.");
     }
 
     return resp.json();
@@ -67,7 +70,8 @@ export async function getSubscriptionHistory(): Promise<{ data: Subscription[] }
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get subscription history.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get subscription history.");
     }
 
     return resp.json();
@@ -81,7 +85,8 @@ export async function subscribe(planId: number) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to subscribe.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to subscribe.");
     }
 
     return resp.json();
@@ -93,7 +98,8 @@ export async function cancelSubscription(subscriptionId: number) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to cancel subscription.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to cancel subscription.");
     }
 
     return resp.json();
@@ -107,7 +113,8 @@ export async function changePlan(planId: number) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to change plan.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to change plan.");
     }
 
     return resp.json();

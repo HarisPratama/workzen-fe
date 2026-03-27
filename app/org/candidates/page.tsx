@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { Plus, Search, Mail, Phone, Eye, Edit, Trash2, UserCheck, UserX } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -351,8 +352,8 @@ const CandidatePool = () => {
                                                     try {
                                                         await deleteCandidate(String(candidate.id));
                                                         fetchCandidates();
-                                                    } catch {
-                                                        alert("Failed to delete candidate.");
+                                                    } catch (err) {
+                                                        toast.error(err instanceof Error ? err.message : "Failed to delete candidate.");
                                                     }
                                                 }}>
                                                     <Trash2 className="w-4 h-4 mr-2" />

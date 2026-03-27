@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { ArrowLeft, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign, Clock, FileText, MessageSquare, Send, Building2, CheckCircle, Edit, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/_components/ui/tabs";
@@ -101,10 +102,10 @@ export default function CandidateDetailPage() {
             });
             setIsApplyDialogOpen(false);
             setSelectedRequest("");
-            alert("Candidate applied successfully!");
-        } catch (error) {
-            console.error("Failed to apply candidate:", error);
-            alert("Failed to apply candidate. Please try again.");
+            toast.success("Candidate applied successfully!");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to apply candidate. Please try again.");
         } finally {
             setApplyLoading(false);
         }
@@ -144,8 +145,8 @@ export default function CandidateDetailPage() {
             });
             setEditDialogOpen(false);
             fetchCandidate();
-        } catch {
-            alert("Failed to update candidate.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update candidate.");
         } finally {
             setEditLoading(false);
         }
@@ -156,8 +157,8 @@ export default function CandidateDetailPage() {
         try {
             await deleteCandidate(candidateId);
             router.push("/org/candidates");
-        } catch {
-            alert("Failed to delete candidate.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete candidate.");
         }
     };
 

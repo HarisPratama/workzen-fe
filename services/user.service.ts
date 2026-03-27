@@ -2,7 +2,7 @@ import { apiFetch } from "@/lib/api";
 
 export async function getUserProfile() {
     const resp = await apiFetch(`admin/users/profile`, { method: "GET" });
-    if (!resp.ok) throw new Error("Failed to get user profile.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to get user profile."); }
     return resp.json();
 }
 
@@ -19,6 +19,6 @@ export async function updatePassword(payload: UpdatePasswordPayload) {
         body: JSON.stringify(payload),
     });
 
-    if (!resp.ok) throw new Error("Failed to update password.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to update password."); }
     return resp.json();
 }

@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { Search, Filter, Plus, Clock, CheckCircle, XCircle, AlertCircle, Eye, Edit, Trash2 } from "lucide-react";
 import {useEffect, useState} from "react";
 import {
@@ -142,8 +143,8 @@ export function ManpowerRequestList() {
     try {
       await deleteManpowerRequest(id);
       fetchManpowerRequests();
-    } catch {
-      alert("Failed to delete manpower request.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete manpower request.");
     }
   };
 

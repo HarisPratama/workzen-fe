@@ -1,8 +1,9 @@
 import Reveal, { Tag } from "@/app/_components/landing_page/Reveal";
+import Link from "next/link";
 
 const plans = [
     {
-        tier: "Starter", name: "Free", price: "$0", period: "/month", popular: false,
+        tier: "Starter", plan: "BASIC", name: "Free", price: "$0", period: "/month", popular: false,
         desc: "Perfect for small outsourcing businesses just getting started",
         features: [
             { ok: true, text: "Up to 20 employees" }, { ok: true, text: "Employee management" },
@@ -13,7 +14,7 @@ const plans = [
         btnText: "Start Free →", btnStyle: "outline",
     },
     {
-        tier: "Pro", name: "$49", price: "$49", period: "/month", popular: true,
+        tier: "Pro", plan: "PRO", name: "$49", price: "$49", period: "/month", popular: true,
         desc: "For growing outsourcing businesses managing hundreds of employees",
         features: [
             { ok: true, text: "Up to 200 employees" }, { ok: true, text: "Everything in Free" },
@@ -24,7 +25,7 @@ const plans = [
         btnText: "Start 14-Day Trial →", btnStyle: "pink",
     },
     {
-        tier: "Enterprise", name: "Custom", price: "Talk to us", period: "", popular: false,
+        tier: "Enterprise", plan: "ENTERPRISE", name: "Custom", price: "Talk to us", period: "", popular: false,
         desc: "For large outsourcing companies with complex multi-branch operations",
         features: [
             { ok: true, text: "Unlimited employees" }, { ok: true, text: "Everything in Pro" },
@@ -67,9 +68,9 @@ export default function Pricing() {
                                         </li>
                                     ))}
                                 </ul>
-                                <a href="#" className={`block text-center py-3.5 rounded-xl font-bold text-sm transition-all no-underline ${p.btnStyle === "pink" ? "bg-[#F0266F] text-white hover:bg-[#ff4d8d] shadow-lg shadow-pink-300/40 hover:shadow-pink-300/60" : "border-2 border-gray-200 text-[#1a1a2e] hover:border-[#F0266F] hover:text-[#F0266F]"}`}>
+                                <Link href={`/register?plan=${p.plan}`} className={`block text-center py-3.5 rounded-xl font-bold text-sm transition-all no-underline ${p.btnStyle === "pink" ? "bg-[#F0266F] text-white hover:bg-[#ff4d8d] shadow-lg shadow-pink-300/40 hover:shadow-pink-300/60" : "border-2 border-gray-200 text-[#1a1a2e] hover:border-[#F0266F] hover:text-[#F0266F]"}`}>
                                     {p.btnText}
-                                </a>
+                                </Link>
                             </div>
                         </Reveal>
                     ))}

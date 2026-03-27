@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { Calendar, Clock, User, FileText, MapPin, Link } from "lucide-react";
 import { useState } from "react";
 import {
@@ -115,9 +116,9 @@ export function ScheduleInterviewModal({
             resetForm();
             onOpenChange(false);
             onScheduled?.();
-        } catch (error) {
-            console.error("Failed to schedule interview:", error);
-            alert("Failed to schedule interview. Please try again.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to schedule interview. Please try again.");
         } finally {
             setLoading(false);
         }

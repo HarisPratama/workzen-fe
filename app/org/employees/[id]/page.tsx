@@ -1,4 +1,5 @@
 "use client"
+import { toast } from "sonner";
 import { ArrowLeft, Phone, CreditCard, Calendar, User, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/app/_components/ui/button";
@@ -53,9 +54,9 @@ export default function EmployeeDetailPage() {
             await updateEmployee(employeeId, editForm);
             setEditOpen(false);
             refetch();
-        } catch (error) {
-            console.error("Failed to update employee:", error);
-            alert("Failed to update employee.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to update employee.");
         } finally {
             setEditLoading(false);
         }
@@ -66,9 +67,9 @@ export default function EmployeeDetailPage() {
         try {
             await deleteEmployee(employeeId);
             router.push("/org/employees");
-        } catch (error) {
-            console.error("Failed to delete employee:", error);
-            alert("Failed to delete employee.");
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to delete employee.");
         } finally {
             setDeleteLoading(false);
         }

@@ -17,13 +17,13 @@ export async function getAssignments(data: GetAssignmentsParams = {}) {
     if (status) params.set("status", status);
 
     const resp = await apiFetch(`assignments?${params.toString()}`, { method: "GET" });
-    if (!resp.ok) throw new Error("Failed to get assignments.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to get assignments."); }
     return resp.json();
 }
 
 export async function getDetailAssignment(id: string) {
     const resp = await apiFetch(`assignments/${id}`, { method: "GET" });
-    if (!resp.ok) throw new Error("Failed to get assignment detail.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to get assignment detail."); }
     return resp.json();
 }
 
@@ -54,7 +54,7 @@ export async function createAssignment(payload: CreateAssignmentPayload) {
         body: JSON.stringify(payload),
     });
 
-    if (!resp.ok) throw new Error("Failed to create assignment.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to create assignment."); }
     return resp.json();
 }
 
@@ -72,12 +72,12 @@ export async function updateAssignment(id: string, payload: UpdateAssignmentPayl
         body: JSON.stringify(payload),
     });
 
-    if (!resp.ok) throw new Error("Failed to update assignment.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to update assignment."); }
     return resp.json();
 }
 
 export async function deleteAssignment(id: string) {
     const resp = await apiFetch(`assignments/${id}`, { method: "DELETE" });
-    if (!resp.ok) throw new Error("Failed to delete assignment.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to delete assignment."); }
     return resp.json();
 }

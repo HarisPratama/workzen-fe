@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/app/_components/ui/input";
 import { Label } from "@/app/_components/ui/label";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { registerTenant } from "@/services/tenant.service";
 import { getSubscriptionPlans, type SubscriptionPlan } from "@/services/subscription.service";
 
@@ -14,6 +14,9 @@ const formatCurrency = (amount: number) =>
 
 export default function RegisterComponent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const preselectedPlan = (searchParams.get("plan")?.toUpperCase() || "") as "" | "BASIC" | "PRO" | "ENTERPRISE";
 
     const [step, setStep] = useState(0);
     const [showPass, setShowPass] = useState(false);
@@ -30,7 +33,7 @@ export default function RegisterComponent() {
         confirmPassword: "",
         company_name: "",
         company_address: "",
-        plan: "" as "" | "BASIC" | "PRO" | "ENTERPRISE",
+        plan: preselectedPlan,
     });
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 

@@ -17,7 +17,8 @@ export async function createCandidateApplication(
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to create candidate application.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to create candidate application.");
     }
 
     return resp.json();
@@ -36,7 +37,8 @@ export async function updateCandidateApplication(
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to update candidate application.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to update candidate application.");
     }
 
     return resp.json();
@@ -51,7 +53,8 @@ export async function getCandidatesForManpowerRequest(manpowerRequestId: string)
     );
 
     if (!resp.ok) {
-        throw new Error("Failed to get candidates for manpower request.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get candidates for manpower request.");
     }
 
     return resp.json();

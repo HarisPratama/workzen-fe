@@ -33,9 +33,9 @@ const Navbar = ()=> {
                         Sign In
                     </span>
                 </Link>
-                <a href="#" className="px-5 py-2 text-sm font-semibold text-white bg-[#F0266F] rounded-xl hover:bg-[#ff4d8d] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-pink-400/30 transition-all no-underline">
+                <Link href="/register" className="px-5 py-2 text-sm font-semibold text-white bg-[#F0266F] rounded-xl hover:bg-[#ff4d8d] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-pink-400/30 transition-all no-underline">
                     Start Free Trial
-                </a>
+                </Link>
             </div>
         </nav>
     );

@@ -20,7 +20,8 @@ export async function getEmployees(data: GetEmployeesParams = {}) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to get employees.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to get employees.");
     }
 
     return resp.json();
@@ -34,7 +35,7 @@ export type CreateEmployeePayload = {
 
 export async function getDetailEmployee(id: string) {
     const resp = await apiFetch(`employees/${id}`, { method: "GET" });
-    if (!resp.ok) throw new Error("Failed to get employee detail.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to get employee detail."); }
     return resp.json();
 }
 
@@ -50,13 +51,13 @@ export async function updateEmployee(id: string, payload: UpdateEmployeePayload)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     });
-    if (!resp.ok) throw new Error("Failed to update employee.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to update employee."); }
     return resp.json();
 }
 
 export async function deleteEmployee(id: string) {
     const resp = await apiFetch(`employees/${id}`, { method: "DELETE" });
-    if (!resp.ok) throw new Error("Failed to delete employee.");
+    if (!resp.ok) { const err = await resp.json().catch(() => null); throw new Error(err?.meta?.message || "Failed to delete employee."); }
     return resp.json();
 }
 
@@ -68,7 +69,8 @@ export async function createEmployee(payload: CreateEmployeePayload) {
     });
 
     if (!resp.ok) {
-        throw new Error("Failed to create employee.");
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to create employee.");
     }
 
     return resp.json();
