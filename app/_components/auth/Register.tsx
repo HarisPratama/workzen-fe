@@ -6,6 +6,7 @@ import { Label } from "@/app/_components/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
 import { registerTenant } from "@/services/tenant.service";
 import { getSubscriptionPlans, type SubscriptionPlan } from "@/services/subscription.service";
+import Image from "next/image";
 
 const steps = ["Account", "Company", "Plan", "Done"];
 
@@ -146,7 +147,7 @@ export default function RegisterComponent() {
         <div className="flex flex-col justify-center h-full px-8 sm:px-12 py-12 max-w-md w-full mx-auto">
             {/* Mobile logo */}
             <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-                <div className="w-8 h-8 bg-[#F0266F] rounded-xl flex items-center justify-center text-sm font-bold text-white">W</div>
+                <Image src="/workzen.png" alt="WorkZen" width={32} height={32} className="rounded-xl" />
                 <span className="font-extrabold text-lg text-[#1a1a2e]">WorkZen</span>
             </div>
 

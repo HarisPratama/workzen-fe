@@ -1,6 +1,7 @@
 "use client"
 import {useEffect, useState} from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const Navbar = ()=> {
     const [scrolled, setScrolled] = useState(false);
@@ -14,8 +15,7 @@ const Navbar = ()=> {
     return (
         <nav className={`fixed top-0 left-0 right-0 z-50 h-[68px] flex items-center justify-between px-6 md:px-12 bg-white/90 backdrop-blur-xl border-b border-gray-200 transition-shadow duration-300 ${scrolled ? "shadow-lg shadow-black/5" : ""}`}>
             <a href="#" className="flex items-center gap-2.5 font-extrabold text-xl text-[#1a1a2e] no-underline">
-                <div className="w-8 h-8 bg-[#F0266F] rounded-[9px] flex items-center justify-center text-base">🎯</div>
-                WorkZen
+                <Image src="/workzen.png" alt="WorkZen" width={120} height={120} className="rounded-lg" />
             </a>
             <ul className="hidden md:flex gap-8 list-none">
                 {["Features", "How It Works", "Pricing", "FAQ"].map((item) => (

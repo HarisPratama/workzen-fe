@@ -22,6 +22,7 @@ import {
     UserPlus,
     Users
 } from "lucide-react";
+import Image from "next/image";
 import {useState, useEffect} from "react";
 import {useRouter} from "next/navigation";
 import { getUserProfile } from "@/services/user.service";
@@ -60,9 +61,7 @@ function AppSidebar({ activeMenu, onMenuClick }: AppSidebarProps) {
             <SidebarContent className="bg-white">
                 {/* Logo */}
                 <div className="p-6 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-pink-600 to-rose-600 rounded-lg flex items-center justify-center">
-                        <Users className="w-5 h-5 text-white" />
-                    </div>
+                    <Image src="/workzen.png" alt="WorkZen" width={32} height={32} className="rounded-lg" />
                     <div>
                         <h2 className="text-lg font-bold text-gray-900">WorkZen</h2>
                     </div>

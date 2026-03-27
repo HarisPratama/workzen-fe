@@ -6,6 +6,7 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {useForm} from "react-hook-form";
 import {loginApi} from "@/services/auth.service";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function LoginComponent() {
     const router = useRouter();
@@ -36,8 +37,8 @@ export default function LoginComponent() {
         <div className="flex flex-col justify-center h-full px-8 sm:px-12 py-12 max-w-md w-full mx-auto">
             {/* Mobile logo */}
             <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-                <div className="w-8 h-8 bg-[#F0266F] rounded-xl flex items-center justify-center">🎯</div>
-                <span className="font-extrabold text-lg text-[#1a1a2e]">TalentHR</span>
+                <Image src="/workzen.png" alt="WorkZen" width={32} height={32} className="rounded-xl" />
+                <span className="font-extrabold text-lg text-[#1a1a2e]">WorkZen</span>
             </div>
 
             {success ? (

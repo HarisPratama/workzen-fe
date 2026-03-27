@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const footerLinks = {
     Product: ["Features", "Pricing", "Changelog", "Roadmap"],
     Resources: ["Documentation", "API Reference", "Blog", "Help Center"],
@@ -11,7 +13,7 @@ export default function Footer() {
                 <div className="grid md:grid-cols-4 gap-12 mb-12">
                     <div>
                         <div className="flex items-center gap-2.5 font-extrabold text-xl text-white mb-3">
-                            <div className="w-8 h-8 bg-[#F0266F] rounded-[9px] flex items-center justify-center">🎯</div>
+                            <Image src="/workzen.png" alt="WorkZen" width={32} height={32} className="rounded-lg" />
                             WorkZen
                         </div>
                         <p className="text-sm text-white/35 leading-relaxed max-w-[200px]">The all-in-one workforce management platform built for outsourcing companies.</p>

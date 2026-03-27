@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type Props = {
     mode: "register" | "login";
 }
@@ -31,7 +33,7 @@ export default function BrandPanel({ mode }: Props) {
             {/* Logo */}
             <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-14">
-                    <div className="w-9 h-9 bg-[#F0266F] rounded-xl flex items-center justify-center text-lg">🎯</div>
+                    <Image src="/workzen.png" alt="WorkZen" width={36} height={36} className="rounded-xl" />
                     <span className="text-white font-extrabold text-xl tracking-tight">WorkZen</span>
                 </div>
 
