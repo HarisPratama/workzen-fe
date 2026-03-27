@@ -17,106 +17,70 @@ jobs:
       packages: write
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
-    - name: Create .env file
-      # Creates environment file from GitHub Secrets for secure API URL injection
-      run: |
-        echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env
-        echo "✓ Created .env with NEXT_PUBLIC_API_URL"
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "=== Starting Frontend Deployment ==="
+            
+            cd ~/workzen-fe-deploy
+            
+            # Login to GHCR
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u harispratama --password-stdin
+            
+            # Pull latest image
+            echo "=== Pulling latest image ==="
+            docker pull ghcr.io/harispratama/workzen-fe:latest
+            
+            # Restart container
+            echo "=== Restarting container ==="
+            docker compose -f docker-compose.prod.yml up -d --force-recreate
+            
+            # Verify
+            echo "=== Verifying ==="
+            sleep 5
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "✓ Frontend is responding on port 3000"
+            else
+              echo "✗ Frontend not responding"
+              docker logs workzen-fe --tail 20
+              exit 1
+            fi
+            
+            # Cleanup
+            docker image prune -f --filter "until=24h"
+            
+            echo "=== Frontend Deployment Complete ==="
 
-    - name: Deploy to VPS
-      uses: appleboy/ssh-action@v1.0.0
-      env:
-        REGISTRY: ghcr.io
-        IMAGE_NAME: ${{ github.repository }}
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        envs: REGISTRY,IMAGE_NAME
-        script: |
-          set -e
-          
-          echo "=========================================="
-          echo "Deploying Workzen Frontend"
-          echo "=========================================="
-          
-          cd /root/.openclaw/workspace/workzen-fe
-          
-          # Pull latest changes
-          echo "Pulling latest code..."
-          git pull origin main
-          
-          # Login to GitHub Container Registry
-          echo "Logging in to GitHub Container Registry..."
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          
-          # Pull latest image
-          echo "Pulling latest Docker image..."
-          docker pull ghcr.io/harispratama/workzen-fe:latest
-          
-          # Stop and remove existing container
-          echo "Stopping existing container..."
-          docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
-          
-          # Start services
-          echo "Starting services..."
-          docker-compose -f docker-compose.prod.yml up -d
-          
-          # Verify deployment
-          echo "Verifying deployment..."
-          sleep 5
-          if curl -sf http://localhost:3000 > /dev/null; then
-            echo "✓ Frontend is responding on port 3000"
-          else
-            echo "✗ Frontend is not responding"
-            docker logs workzen-fe --tail 50
-            exit 1
-          fi
-          
-          # Cleanup old images
-          echo "Cleaning up old images..."
-          docker image prune -af --filter "until=168h"
-          
-          echo "=========================================="
-          echo "Deployment completed successfully!"
-          echo "=========================================="
-          echo "Application URL: https://workzen.web.id"
-          echo "=========================================="
   notify:
     needs: build-and-deploy
     runs-on: ubuntu-latest
