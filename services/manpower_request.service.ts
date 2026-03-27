@@ -73,3 +73,40 @@ export async function createManpowerRequest(
 
     return resp.json();
 }
+
+export type UpdateManpowerRequestPayload = {
+    client_id?: number;
+    position?: string;
+    required_count?: number;
+    salary_min?: number;
+    salary_max?: number;
+    work_location?: string;
+    job_description?: string;
+    deadline_date?: string;
+};
+
+export async function updateManpowerRequest(id: string, payload: UpdateManpowerRequestPayload) {
+    const resp = await apiFetch(`manpower-requests/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+        throw new Error("Failed to update manpower request.");
+    }
+
+    return resp.json();
+}
+
+export async function deleteManpowerRequest(id: string) {
+    const resp = await apiFetch(`manpower-requests/${id}`, {
+        method: "DELETE",
+    });
+
+    if (!resp.ok) {
+        throw new Error("Failed to delete manpower request.");
+    }
+
+    return resp.json();
+}

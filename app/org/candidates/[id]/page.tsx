@@ -1,11 +1,13 @@
 "use client"
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign, Clock, FileText, MessageSquare, Send, Building2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign, Clock, FileText, MessageSquare, Send, Building2, CheckCircle, Edit, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/_components/ui/tabs";
 import { Badge } from "@/app/_components/ui/badge";
 import { Separator } from "@/app/_components/ui/separator";
 import { Textarea } from "@/app/_components/ui/textarea";
 import { Button } from "@/app/_components/ui/button";
+import { Input } from "@/app/_components/ui/input";
+import { Label } from "@/app/_components/ui/label";
 import { Skeleton } from "@/app/_components/ui/skeleton";
 import {
     Dialog,
@@ -23,7 +25,7 @@ import {
     SelectValue,
 } from "@/app/_components/ui/select";
 import { useRouter, useParams } from "next/navigation";
-import { getDetailCandidate } from "@/services/candidate.service";
+import { getDetailCandidate, updateCandidate, deleteCandidate } from "@/services/candidate.service";
 import { getManpowerRequest } from "@/services/manpower_request.service";
 import { createCandidateApplication } from "@/services/candidate-application.service";
 
@@ -105,6 +107,57 @@ export default function CandidateDetailPage() {
             alert("Failed to apply candidate. Please try again.");
         } finally {
             setApplyLoading(false);
+        }
+    };
+
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editForm, setEditForm] = useState({
+        full_name: "", email: "", phone: "", birth_date: "", address: "", source: "", citizen_id: "",
+    });
+
+    const openEditDialog = () => {
+        if (!candidate) return;
+        setEditForm({
+            full_name: candidate.full_name,
+            email: candidate.email,
+            phone: candidate.phone,
+            birth_date: candidate.birth_date ? candidate.birth_date.split("T")[0] : "",
+            address: candidate.address || "",
+            source: candidate.source || "",
+            citizen_id: candidate.citizen_id || "",
+        });
+        setEditDialogOpen(true);
+    };
+
+    const handleEdit = async () => {
+        setEditLoading(true);
+        try {
+            await updateCandidate(candidateId, {
+                full_name: editForm.full_name,
+                email: editForm.email,
+                phone: editForm.phone,
+                birth_date: editForm.birth_date ? `${editForm.birth_date}T00:00:00Z` : undefined,
+                address: editForm.address,
+                source: editForm.source,
+                citizen_id: editForm.citizen_id || undefined,
+            });
+            setEditDialogOpen(false);
+            fetchCandidate();
+        } catch {
+            alert("Failed to update candidate.");
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm(`Delete candidate "${candidate?.full_name}"? This cannot be undone.`)) return;
+        try {
+            await deleteCandidate(candidateId);
+            router.push("/org/candidates");
+        } catch {
+            alert("Failed to delete candidate.");
         }
     };
 
@@ -193,13 +246,23 @@ export default function CandidateDetailPage() {
                     </div>
                 </div>
 
-                <Button
-                    onClick={handleOpenApplyDialog}
-                    className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
-                >
-                    <Send className="w-4 h-4 mr-2" />
-                    Apply to Request
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={openEditDialog}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                    </Button>
+                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={handleDelete}>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                    </Button>
+                    <Button
+                        onClick={handleOpenApplyDialog}
+                        className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
+                    >
+                        <Send className="w-4 h-4 mr-2" />
+                        Apply to Request
+                    </Button>
+                </div>
             </div>
 
             {/* Quick Info Cards */}
@@ -335,6 +398,64 @@ export default function CandidateDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Candidate Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Edit Candidate</DialogTitle>
+                        <DialogDescription>Update candidate information</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <Label htmlFor="edit-name">Full Name *</Label>
+                            <Input id="edit-name" value={editForm.full_name}
+                                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="edit-email">Email *</Label>
+                                <Input id="edit-email" type="email" value={editForm.email}
+                                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-phone">Phone *</Label>
+                                <Input id="edit-phone" value={editForm.phone}
+                                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="edit-birth">Birth Date</Label>
+                                <Input id="edit-birth" type="date" value={editForm.birth_date}
+                                    onChange={(e) => setEditForm({ ...editForm, birth_date: e.target.value })} />
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-source">Source</Label>
+                                <Input id="edit-source" value={editForm.source}
+                                    onChange={(e) => setEditForm({ ...editForm, source: e.target.value })} />
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="edit-address">Address</Label>
+                            <Input id="edit-address" value={editForm.address}
+                                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+                        </div>
+                        <div>
+                            <Label htmlFor="edit-citizen">Citizen ID</Label>
+                            <Input id="edit-citizen" value={editForm.citizen_id}
+                                onChange={(e) => setEditForm({ ...editForm, citizen_id: e.target.value })} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleEdit} disabled={!editForm.full_name || !editForm.email || editLoading}
+                            className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700">
+                            {editLoading ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Apply to Request Dialog */}
             <Dialog open={isApplyDialogOpen} onOpenChange={setIsApplyDialogOpen}>

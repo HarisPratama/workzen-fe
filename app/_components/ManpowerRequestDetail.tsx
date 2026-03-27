@@ -9,7 +9,10 @@ import {
   CheckCircle,
   Phone,
   Mail,
-  Kanban
+  Kanban,
+  Plus,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -21,15 +24,33 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Combobox } from "./ui/combobox";
 import { useRouter } from "next/navigation";
 import { ManpowerRequest } from "@/app/_components/ManpowerRequestList";
 import { Skeleton } from "@/app/_components/ui/skeleton";
-import { getCandidatesForManpowerRequest } from "@/services/candidate-application.service";
+import { getCandidatesForManpowerRequest, createCandidateApplication } from "@/services/candidate-application.service";
+import { getCandidates } from "@/services/candidate.service";
+import { updateManpowerRequest, deleteManpowerRequest } from "@/services/manpower_request.service";
+import { getListClient } from "@/services/client.service";
+import { useFetch } from "@/hooks/use-fetch";
 
 interface ManpowerRequestDetailProps {
   onBack: () => void;
   manpowerRequest: ManpowerRequest;
   loading: boolean;
+  onRefetch?: () => void;
 }
 
 interface CandidateApplication {
@@ -46,11 +67,89 @@ interface CandidateApplication {
   updated_at: string;
 }
 
-export function ManpowerRequestDetail({ onBack, manpowerRequest, loading }: ManpowerRequestDetailProps) {
+export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefetch }: ManpowerRequestDetailProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("detail");
   const [candidates, setCandidates] = useState<CandidateApplication[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [addCandidateOpen, setAddCandidateOpen] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [addCandidateLoading, setAddCandidateLoading] = useState(false);
+
+  // Edit state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editForm, setEditForm] = useState({
+    client_id: "", position: "", required_count: "", salary_min: "", salary_max: "",
+    work_location: "", job_description: "", deadline_date: "",
+  });
+
+  const { data: clientData, loading: clientLoading } = useFetch(
+    () => getListClient({ limit: 100 }), []
+  );
+
+  const clientOptions = (clientData?.data ?? []).map((c: { id: number; company_name: string }) => ({
+    value: String(c.id),
+    label: c.company_name,
+    sublabel: `ID: ${c.id}`,
+  }));
+
+  const openEditDialog = () => {
+    if (!manpowerRequest) return;
+    setEditForm({
+      client_id: String(manpowerRequest.client_id ?? ""),
+      position: manpowerRequest.position,
+      required_count: String(manpowerRequest.required_count),
+      salary_min: String(manpowerRequest.salary_min),
+      salary_max: String(manpowerRequest.salary_max),
+      work_location: manpowerRequest.work_location,
+      job_description: manpowerRequest.job_description,
+      deadline_date: manpowerRequest.deadline_date ? manpowerRequest.deadline_date.split("T")[0] : "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    setEditLoading(true);
+    try {
+      await updateManpowerRequest(String(manpowerRequest.id), {
+        client_id: Number(editForm.client_id),
+        position: editForm.position,
+        required_count: Number(editForm.required_count),
+        salary_min: Number(editForm.salary_min),
+        salary_max: Number(editForm.salary_max),
+        work_location: editForm.work_location,
+        job_description: editForm.job_description,
+        deadline_date: editForm.deadline_date ? `${editForm.deadline_date}T00:00:00Z` : undefined,
+      });
+      setEditOpen(false);
+      onRefetch?.();
+    } catch {
+      alert("Failed to update manpower request.");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteRequest = async () => {
+    if (!confirm("Delete this manpower request? This cannot be undone.")) return;
+    try {
+      await deleteManpowerRequest(String(manpowerRequest.id));
+      router.push("/org/manpower-request");
+    } catch {
+      alert("Failed to delete manpower request.");
+    }
+  };
+
+  const { data: candidateListData, loading: candidateListLoading } = useFetch(
+    () => getCandidates({ limit: 100 }), []
+  );
+
+  const candidateOptions = (candidateListData?.data ?? []).map((c: { id: number; full_name: string; email: string }) => ({
+    value: String(c.id),
+    label: c.full_name,
+    sublabel: c.email,
+  }));
 
   useEffect(() => {
     if (manpowerRequest?.id && activeTab === "candidates") {
@@ -115,9 +214,24 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading }: Manp
     router.push(`/org/manpower-request/pipelines/${id}`);
   }
 
-  const onAddCandidate = () => {
-    router.push(`/org/candidates/create`);
-  }
+  const handleAddCandidate = async () => {
+    if (!selectedCandidateId || !manpowerRequest?.id) return;
+    setAddCandidateLoading(true);
+    try {
+      await createCandidateApplication({
+        candidate_id: Number(selectedCandidateId),
+        manpower_request_id: Number(manpowerRequest.id),
+      });
+      setAddCandidateOpen(false);
+      setSelectedCandidateId("");
+      fetchCandidates();
+    } catch (error) {
+      console.error("Failed to add candidate:", error);
+      alert("Failed to add candidate to this request.");
+    } finally {
+      setAddCandidateLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -160,23 +274,27 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading }: Manp
         </div>
 
         <div className="flex gap-3">
-          {loading ?
-            <Skeleton className={"w-36 h-10 mt-1"} />
-            :
-            <button
-              onClick={() => onViewCandidates(String(manpowerRequest?.id))}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-pink-600 text-pink-600 rounded-lg hover:bg-pink-50 transition-all font-medium"
-            >
-              <Kanban className="w-4 h-4" />
-              View Pipeline
-            </button>
-          }
-          {loading ?
-            <Skeleton className={"w-36 h-10 mt-1"} />
-            :
-            <button onClick={onAddCandidate} className="px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm">
-              Add Candidate
-            </button>
+          {!loading && (
+            <>
+              <Button variant="outline" onClick={openEditDialog}>
+                <Edit className="w-4 h-4 mr-2" />Edit
+              </Button>
+              <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={handleDeleteRequest}>
+                <Trash2 className="w-4 h-4 mr-2" />Delete
+              </Button>
+              <button
+                onClick={() => onViewCandidates(String(manpowerRequest?.id))}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-pink-600 text-pink-600 rounded-lg hover:bg-pink-50 transition-all font-medium"
+              >
+                <Kanban className="w-4 h-4" />
+                View Pipeline
+              </button>
+              <button onClick={() => setAddCandidateOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm">
+                <Plus className="w-4 h-4" />
+                Add Candidate
+              </button>
+            </>
+          )
           }
         </div>
       </div>
@@ -390,6 +508,111 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading }: Manp
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Manpower Request Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Manpower Request</DialogTitle>
+            <DialogDescription>Update the manpower request details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Client *</Label>
+              <Combobox
+                options={clientOptions}
+                value={editForm.client_id}
+                onValueChange={(v) => setEditForm({ ...editForm, client_id: v })}
+                placeholder="Select client..."
+                searchPlaceholder="Search client..."
+                emptyText="No clients found."
+                loading={clientLoading}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-position">Position *</Label>
+              <Input id="edit-position" value={editForm.position}
+                onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-count">Required Count *</Label>
+                <Input id="edit-count" type="number" value={editForm.required_count}
+                  onChange={(e) => setEditForm({ ...editForm, required_count: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="edit-deadline">Deadline *</Label>
+                <Input id="edit-deadline" type="date" value={editForm.deadline_date}
+                  onChange={(e) => setEditForm({ ...editForm, deadline_date: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-salmin">Salary Min</Label>
+                <Input id="edit-salmin" type="number" value={editForm.salary_min}
+                  onChange={(e) => setEditForm({ ...editForm, salary_min: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="edit-salmax">Salary Max</Label>
+                <Input id="edit-salmax" type="number" value={editForm.salary_max}
+                  onChange={(e) => setEditForm({ ...editForm, salary_max: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-location">Work Location</Label>
+              <Input id="edit-location" value={editForm.work_location}
+                onChange={(e) => setEditForm({ ...editForm, work_location: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="edit-jd">Job Description</Label>
+              <Textarea id="edit-jd" rows={4} value={editForm.job_description}
+                onChange={(e) => setEditForm({ ...editForm, job_description: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit}
+              disabled={!editForm.position || !editForm.client_id || editLoading}
+              className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700">
+              {editLoading ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Candidate Dialog */}
+      <Dialog open={addCandidateOpen} onOpenChange={setAddCandidateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Candidate</DialogTitle>
+            <DialogDescription>
+              Select a candidate from the talent pool to apply for this position
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label>Candidate *</Label>
+            <Combobox
+              options={candidateOptions}
+              value={selectedCandidateId}
+              onValueChange={setSelectedCandidateId}
+              placeholder="Select candidate..."
+              searchPlaceholder="Search candidate name..."
+              emptyText="No candidates found."
+              loading={candidateListLoading}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddCandidateOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleAddCandidate}
+              disabled={!selectedCandidateId || addCandidateLoading}
+              className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
+            >
+              {addCandidateLoading ? "Adding..." : "Add Candidate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

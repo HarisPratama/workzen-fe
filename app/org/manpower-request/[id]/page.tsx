@@ -57,7 +57,7 @@ const MRDetail  = () => {
 
     return (
         <div className="px-8 py-8">
-            <ManpowerRequestDetail loading={loading} onBack={handleBackToList} manpowerRequest={manpowerRequest as ManpowerRequest} />
+            <ManpowerRequestDetail loading={loading} onBack={handleBackToList} manpowerRequest={manpowerRequest as ManpowerRequest} onRefetch={() => fetchManpowerRequest(params.id as string)} />
         </div>
     )
 }

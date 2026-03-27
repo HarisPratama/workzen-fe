@@ -10,7 +10,10 @@
       "Bash(nvm ls-remote:*)",
       "Bash(nvm use:*)",
       "Bash(source ~/.nvm/nvm.sh)",
-      "Bash(nvm install:*)"
+      "Bash(nvm install:*)",
+      "Bash(npm run:*)",
+      "Bash(curl:*)",
+      "Bash(python3 -m json.tool)"
     ]
   }
 }

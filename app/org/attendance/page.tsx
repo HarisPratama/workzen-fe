@@ -1,5 +1,5 @@
 "use client"
-import { Search, Clock, CheckCircle, XCircle, CalendarDays, Plus, Trash2 } from "lucide-react";
+import { Search, Clock, CheckCircle, XCircle, CalendarDays, Plus, Trash2, Edit } from "lucide-react";
 import { useState } from "react";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -125,6 +125,46 @@ export default function AttendancePage() {
         } catch (error) {
             console.error("Failed to delete attendance:", error);
             alert("Failed to delete attendance.");
+        }
+    };
+
+    // Edit state
+    const [editOpen, setEditOpen] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editingId, setEditingId] = useState("");
+    const [editForm, setEditForm] = useState({
+        status: "present" as string,
+        check_in: "",
+        check_out: "",
+        notes: "",
+    });
+
+    const openEdit = (att: Attendance) => {
+        setEditingId(att.id);
+        setEditForm({
+            status: att.status,
+            check_in: att.check_in?.slice(0, 5) || "",
+            check_out: att.check_out?.slice(0, 5) || "",
+            notes: att.notes || "",
+        });
+        setEditOpen(true);
+    };
+
+    const handleEdit = async () => {
+        setEditLoading(true);
+        try {
+            await updateAttendance(editingId, {
+                status: editForm.status,
+                check_in: editForm.check_in ? `${editForm.check_in}:00` : undefined,
+                check_out: editForm.check_out ? `${editForm.check_out}:00` : undefined,
+                notes: editForm.notes || undefined,
+            });
+            setEditOpen(false);
+            refetch();
+        } catch {
+            alert("Failed to update attendance.");
+        } finally {
+            setEditLoading(false);
         }
     };
 
@@ -261,6 +301,9 @@ export default function AttendancePage() {
                                                 <Button variant="ghost" size="sm"><span className="text-gray-600">&#8942;</span></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => openEdit(att)}>
+                                                    <Edit className="w-4 h-4 mr-2" />Edit
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(att.id)}>
                                                     <Trash2 className="w-4 h-4 mr-2" />Delete
                                                 </DropdownMenuItem>
@@ -362,6 +405,54 @@ export default function AttendancePage() {
                         <Button onClick={handleCreate} disabled={!createForm.employee_id || !createForm.date || createLoading}
                             className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700">
                             {createLoading ? "Saving..." : "Add Record"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Modal */}
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Edit Attendance</DialogTitle>
+                        <DialogDescription>Update attendance record</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <Label>Status</Label>
+                            <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="present">Present</SelectItem>
+                                    <SelectItem value="absent">Absent</SelectItem>
+                                    <SelectItem value="leave">Leave</SelectItem>
+                                    <SelectItem value="holiday">Holiday</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="edit-checkin">Check In</Label>
+                                <Input id="edit-checkin" type="time" value={editForm.check_in}
+                                    onChange={(e) => setEditForm({ ...editForm, check_in: e.target.value })} />
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-checkout">Check Out</Label>
+                                <Input id="edit-checkout" type="time" value={editForm.check_out}
+                                    onChange={(e) => setEditForm({ ...editForm, check_out: e.target.value })} />
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="edit-notes">Notes</Label>
+                            <Textarea id="edit-notes" value={editForm.notes} rows={2}
+                                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                        <Button onClick={handleEdit} disabled={editLoading}
+                            className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700">
+                            {editLoading ? "Saving..." : "Save Changes"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -1,5 +1,5 @@
 "use client"
-import { Plus, DollarSign, Eye, Trash2, Clock, CheckCircle, FileText, CreditCard } from "lucide-react";
+import { Plus, DollarSign, Eye, Trash2, Clock, CheckCircle, FileText, CreditCard, Edit } from "lucide-react";
 import { useState } from "react";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -17,7 +17,7 @@ import { Input } from "@/app/_components/ui/input";
 import { Label } from "@/app/_components/ui/label";
 import { Textarea } from "@/app/_components/ui/textarea";
 import { Combobox } from "@/app/_components/ui/combobox";
-import { getPayrolls, createPayroll, processPayroll, markPayrollAsPaid, deletePayroll } from "@/services/payroll.service";
+import { getPayrolls, createPayroll, updatePayroll, processPayroll, markPayrollAsPaid, deletePayroll } from "@/services/payroll.service";
 import { getEmployees } from "@/services/employee.service";
 import { useFetch } from "@/hooks/use-fetch";
 
@@ -137,6 +137,50 @@ export default function PayrollPage() {
         }
     };
 
+    // Edit state
+    const [editOpen, setEditOpen] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editingId, setEditingId] = useState("");
+    const [editForm, setEditForm] = useState({
+        basic_salary: "", allowances: "", deductions: "", tax: "", notes: "",
+    });
+
+    const openEdit = (payroll: Payroll) => {
+        setEditingId(payroll.id);
+        setEditForm({
+            basic_salary: String(payroll.basic_salary),
+            allowances: String(payroll.allowances),
+            deductions: String(payroll.deductions),
+            tax: String(payroll.tax),
+            notes: payroll.notes || "",
+        });
+        setEditOpen(true);
+    };
+
+    const handleEdit = async () => {
+        setEditLoading(true);
+        try {
+            const basicSalary = Number(editForm.basic_salary);
+            const allowances = Number(editForm.allowances) || 0;
+            const deductions = Number(editForm.deductions) || 0;
+            const tax = Number(editForm.tax) || 0;
+            await updatePayroll(editingId, {
+                basic_salary: basicSalary,
+                allowances,
+                deductions,
+                tax,
+                net_salary: basicSalary + allowances - deductions - tax,
+                notes: editForm.notes || undefined,
+            });
+            setEditOpen(false);
+            refetch();
+        } catch {
+            alert("Failed to update payroll.");
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
     const totalNetSalary = payrolls.reduce((sum, p) => sum + (p.net_salary || 0), 0);
 
     return (
@@ -232,7 +276,9 @@ export default function PayrollPage() {
                                                 <Button variant="ghost" size="sm"><span className="text-gray-600">&#8942;</span></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem><Eye className="w-4 h-4 mr-2" />View</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => openEdit(payroll)}>
+                                                    <Edit className="w-4 h-4 mr-2" />Edit
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleProcess(payroll.id)}>
                                                     <CreditCard className="w-4 h-4 mr-2" />Process
                                                 </DropdownMenuItem>
@@ -347,6 +393,63 @@ export default function PayrollPage() {
                             disabled={!createForm.employee_id || !createForm.period_start || !createForm.period_end || !createForm.basic_salary || createLoading}
                             className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700">
                             {createLoading ? "Creating..." : "Create Payroll"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Modal */}
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Edit Payroll</DialogTitle>
+                        <DialogDescription>Update payroll record</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <Label htmlFor="edit-salary">Basic Salary</Label>
+                            <Input id="edit-salary" type="number" value={editForm.basic_salary}
+                                onChange={(e) => setEditForm({ ...editForm, basic_salary: e.target.value })} />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <Label htmlFor="edit-allow">Allowances</Label>
+                                <Input id="edit-allow" type="number" value={editForm.allowances}
+                                    onChange={(e) => setEditForm({ ...editForm, allowances: e.target.value })} />
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-deduct">Deductions</Label>
+                                <Input id="edit-deduct" type="number" value={editForm.deductions}
+                                    onChange={(e) => setEditForm({ ...editForm, deductions: e.target.value })} />
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-tax">Tax</Label>
+                                <Input id="edit-tax" type="number" value={editForm.tax}
+                                    onChange={(e) => setEditForm({ ...editForm, tax: e.target.value })} />
+                            </div>
+                        </div>
+                        {editForm.basic_salary && (
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                                <p className="font-semibold text-blue-900 mb-1">Net Salary Preview</p>
+                                <p className="text-lg font-bold text-blue-800">
+                                    {formatCurrency(
+                                        Number(editForm.basic_salary) + Number(editForm.allowances || 0)
+                                        - Number(editForm.deductions || 0) - Number(editForm.tax || 0)
+                                    )}
+                                </p>
+                            </div>
+                        )}
+                        <div>
+                            <Label htmlFor="edit-notes">Notes</Label>
+                            <Textarea id="edit-notes" value={editForm.notes} rows={2}
+                                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+                        <Button onClick={handleEdit} disabled={!editForm.basic_salary || editLoading}
+                            className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700">
+                            {editLoading ? "Saving..." : "Save Changes"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -11,6 +11,7 @@ import {
 import {
     Bell,
     Briefcase,
+    Building2,
     CalendarDays,
     ClipboardList,
     DollarSign,
@@ -34,6 +35,7 @@ type PageType = "dashboard" | "manpower-requests" | "manpower-create" | "manpowe
 const organizationMenuItems = [
     { title: "Overview", icon: LayoutDashboard, page: "overview" as PageType },
     { title: "Employees", icon: Users, page: "employees" as PageType },
+    { title: "Clients", icon: Building2, page: "clients" as PageType },
     { title: "Assignments", icon: Briefcase, page: "assignments" as PageType },
     { title: "Attendance", icon: CalendarDays, page: "attendance" as PageType },
     { title: "Manpower Requests", icon: ClipboardList, page: "manpower-request" as PageType },

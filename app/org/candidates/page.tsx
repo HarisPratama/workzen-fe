@@ -27,7 +27,7 @@ import {
 import { Input } from "../../_components/ui/input";
 import { Skeleton } from "../../_components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { getCandidates } from "@/services/candidate.service";
+import { getCandidates, deleteCandidate } from "@/services/candidate.service";
 
 interface Candidate {
     id: number;
@@ -342,11 +342,19 @@ const CandidatePool = () => {
                                                     <Eye className="w-4 h-4 mr-2" />
                                                     View Details
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => onViewDetail(candidate.id)}>
                                                     <Edit className="w-4 h-4 mr-2" />
                                                     Edit
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-600">
+                                                <DropdownMenuItem className="text-red-600" onClick={async () => {
+                                                    if (!confirm(`Delete candidate "${candidate.full_name}"?`)) return;
+                                                    try {
+                                                        await deleteCandidate(String(candidate.id));
+                                                        fetchCandidates();
+                                                    } catch {
+                                                        alert("Failed to delete candidate.");
+                                                    }
+                                                }}>
                                                     <Trash2 className="w-4 h-4 mr-2" />
                                                     Delete
                                                 </DropdownMenuItem>

@@ -1,5 +1,5 @@
 "use client"
-import { Search, Filter, Plus, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Search, Filter, Plus, Clock, CheckCircle, XCircle, AlertCircle, Eye, Edit, Trash2 } from "lucide-react";
 import {useEffect, useState} from "react";
 import {
   Table,
@@ -16,12 +16,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {useRouter} from "next/navigation";
-import {getManpowerRequest} from "@/services/manpower_request.service"
+import {getManpowerRequest, deleteManpowerRequest} from "@/services/manpower_request.service"
 
 export interface ManpowerRequest {
   id: string;
+  client_id?: number;
   client: {
     company_name: string;
   };
@@ -41,63 +49,6 @@ interface ManpowerRequestListProps {
   manpowerRequests: ManpowerRequest[];
 }
 
-// Mock data
-const mockRequests: any[] = [
-  {
-    id: "MPR-001",
-    client: "PT Maju Jaya",
-    position: "Software Engineer",
-    required_count: 5,
-    hired: 3,
-    status: "IN_PROGRESS",
-    deadline_date: "2026-04-15",
-  },
-  {
-    id: "MPR-002",
-    client: "CV Sukses Mandiri",
-    position: "Marketing Manager",
-    required_count: 2,
-    hired: 2,
-    status: "FILLED",
-    deadline_date: "2026-03-20",
-  },
-  {
-    id: "MPR-003",
-    client: "PT Global Tech",
-    position: "Data Analyst",
-    required_count: 3,
-    hired: 0,
-    status: "OPEN",
-    deadline_date: "2026-05-01",
-  },
-  {
-    id: "MPR-004",
-    client: "PT Sejahtera Abadi",
-    position: "UI/UX Designer",
-    required_count: 4,
-    hired: 1,
-    status: "IN_PROGRESS",
-    deadline_date: "2026-04-28",
-  },
-  {
-    id: "MPR-005",
-    client: "CV Karya Bersama",
-    position: "HR Specialist",
-    required_count: 2,
-    hired: 0,
-    status: "OPEN",
-    deadline_date: "2026-05-10",
-  },
-  {
-    id: "MPR-006",
-    client: "PT Global Tech",
-    position: "DevOps Engineer",
-    required_count: 3,
-    hired: 0,
-    status: "CANCELLED",
-    deadline_date: "2026-03-15",
-  },
-];
 
 export function ManpowerRequestList() {
   const router = useRouter();
@@ -185,7 +136,16 @@ export function ManpowerRequestList() {
     }
   };
 
-  const uniqueClients = Array.from(new Set(mockRequests.map((r) => r.client)));
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Delete this manpower request?")) return;
+    try {
+      await deleteManpowerRequest(id);
+      fetchManpowerRequests();
+    } catch {
+      alert("Failed to delete manpower request.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -244,8 +204,8 @@ export function ManpowerRequestList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Clients</SelectItem>
-                {uniqueClients.map((client) => (
-                  <SelectItem key={client} value={client}>
+                {Array.from(new Set(manpowerRequests.map((r) => r.client?.company_name).filter(Boolean))).map((client) => (
+                  <SelectItem key={client} value={client!}>
                     {client}
                   </SelectItem>
                 ))}
@@ -267,6 +227,7 @@ export function ManpowerRequestList() {
               <TableHead className="font-semibold text-center">Hired</TableHead>
               <TableHead className="font-semibold">Status</TableHead>
               <TableHead className="font-semibold">Deadline</TableHead>
+              <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -304,6 +265,21 @@ export function ManpowerRequestList() {
                 <TableCell>
                   <p className="text-gray-900">{new Date(request.deadline_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm"><span className="text-gray-600">&#8942;</span></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetail(request.id); }}>
+                        <Eye className="w-4 h-4 mr-2" />View Detail
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-600" onClick={(e) => handleDelete(request.id, e)}>
+                        <Trash2 className="w-4 h-4 mr-2" />Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -319,7 +295,7 @@ export function ManpowerRequestList() {
 
       {/* Summary */}
       <div className="flex items-center justify-between text-sm text-gray-600">
-        <p>Showing {manpowerRequests.length} of {mockRequests.length} requests</p>
+        <p>Showing {manpowerRequests.length} requests</p>
       </div>
     </div>
   );

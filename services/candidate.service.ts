@@ -64,3 +64,40 @@ export async function createCandidate(payload: CreateCandidatePayload) {
 
     return resp.json();
 }
+
+export type UpdateCandidatePayload = {
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    birth_date?: string;
+    address?: string;
+    source?: string;
+    citizen_id?: string;
+    status?: string;
+};
+
+export async function updateCandidate(id: string, payload: UpdateCandidatePayload) {
+    const resp = await apiFetch(`candidates/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+        throw new Error("Failed to update candidate.");
+    }
+
+    return resp.json();
+}
+
+export async function deleteCandidate(id: string) {
+    const resp = await apiFetch(`candidates/${id}`, {
+        method: "DELETE",
+    });
+
+    if (!resp.ok) {
+        throw new Error("Failed to delete candidate.");
+    }
+
+    return resp.json();
+}

@@ -13,7 +13,8 @@ import {
     Clock,
     Plus,
     X,
-    Send
+    Send,
+    DollarSign
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
@@ -36,17 +37,31 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/app/_components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/app/_components/ui/dialog";
 import { Badge } from "@/app/_components/ui/badge";
+import { Label } from "@/app/_components/ui/label";
 import { Separator } from "@/app/_components/ui/separator";
 import { Textarea } from "@/app/_components/ui/textarea";
 import { Button } from "@/app/_components/ui/button";
 import { Skeleton } from "@/app/_components/ui/skeleton";
+import { Combobox } from "@/app/_components/ui/combobox";
 import { useParams, useRouter } from "next/navigation";
 import { ScheduleInterviewModal } from "@/app/_components/ScheduleInterviewModal";
 import { CreateOfferModal } from "@/app/_components/CreateOfferModal";
 import { OfferDecisionModal } from "@/app/_components/OfferDecisionModal";
 import { InterviewResultModal } from "@/app/_components/InterviewResultModal";
-import { getCandidatesForManpowerRequest } from "@/services/candidate-application.service";
+import { getCandidatesForManpowerRequest, createCandidateApplication, updateCandidateApplication } from "@/services/candidate-application.service";
+import { getCandidates } from "@/services/candidate.service";
+import { getInterviews } from "@/services/interview.service";
+import { getOffers } from "@/services/offer.service";
+import { useFetch } from "@/hooks/use-fetch";
 
 type CandidateStatus = "APPLIED" | "SCREENING" | "INTERVIEW" | "OFFERED" | "HIRED";
 
@@ -161,6 +176,32 @@ function KanbanColumn({ column, candidates, onCandidateClick, onDrop }: KanbanCo
     );
 }
 
+interface InterviewData {
+    id: number;
+    type: string;
+    scheduled_at: string;
+    duration_minutes: number;
+    status?: string;
+    result?: string;
+    location?: string;
+    meeting_link?: string;
+    interviewer?: { id: number; name: string };
+}
+
+interface OfferData {
+    id: number;
+    position: string;
+    base_salary: number;
+    status: string;
+    employment_type?: string;
+    start_date?: string;
+    expiry_date?: string;
+    created_at: string;
+}
+
+const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount || 0);
+
 export default function CandidatePipeline() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
@@ -186,6 +227,27 @@ export default function CandidatePipeline() {
         candidateName?: string;
         position?: string;
     } | null>(null);
+
+    // Add candidate dialog
+    const [addCandidateOpen, setAddCandidateOpen] = useState(false);
+    const [selectedCandidateId, setSelectedCandidateId] = useState("");
+    const [addCandidateLoading, setAddCandidateLoading] = useState(false);
+
+    // Drawer data
+    const [candidateInterviews, setCandidateInterviews] = useState<InterviewData[]>([]);
+    const [candidateOffers, setCandidateOffers] = useState<OfferData[]>([]);
+    const [interviewsLoading, setInterviewsLoading] = useState(false);
+    const [offersLoading, setOffersLoading] = useState(false);
+
+    const { data: candidateListData, loading: candidateListLoading } = useFetch(
+        () => getCandidates({ limit: 100 }), []
+    );
+
+    const candidateOptions = (candidateListData?.data ?? []).map((c: { id: number; full_name: string; email: string }) => ({
+        value: String(c.id),
+        label: c.full_name,
+        sublabel: c.email,
+    }));
 
     const fetchCandidates = useCallback(async () => {
         if (!params.id) return;
@@ -229,9 +291,45 @@ export default function CandidatePipeline() {
         fetchCandidates();
     }, [fetchCandidates]);
 
-    const handleCandidateClick = (candidate: Candidate) => {
+    const handleCandidateClick = async (candidate: Candidate) => {
         setSelectedCandidate(candidate);
         setIsDrawerOpen(true);
+        setCandidateInterviews([]);
+        setCandidateOffers([]);
+
+        // Fetch interviews for this candidate application
+        if (candidate.candidate_application_id) {
+            setInterviewsLoading(true);
+            try {
+                const res = await getInterviews({ limit: 50 });
+                const allInterviews = res.data ?? [];
+                const filtered = allInterviews.filter(
+                    (i: { candidate_application_id?: number }) =>
+                        i.candidate_application_id === candidate.candidate_application_id
+                );
+                setCandidateInterviews(filtered);
+            } catch {
+                setCandidateInterviews([]);
+            } finally {
+                setInterviewsLoading(false);
+            }
+
+            // Fetch offers for this candidate application
+            setOffersLoading(true);
+            try {
+                const res = await getOffers({ limit: 50 });
+                const allOffers = res.data ?? [];
+                const filtered = allOffers.filter(
+                    (o: { candidate_application_id?: number }) =>
+                        o.candidate_application_id === candidate.candidate_application_id
+                );
+                setCandidateOffers(filtered);
+            } catch {
+                setCandidateOffers([]);
+            } finally {
+                setOffersLoading(false);
+            }
+        }
     };
 
     const handleDrop = (candidateId: number, fromStatus: CandidateStatus, toStatus: CandidateStatus) => {
@@ -243,19 +341,43 @@ export default function CandidatePipeline() {
         });
     };
 
-    const confirmStatusChange = () => {
+    const confirmStatusChange = async () => {
         if (!confirmDialog) return;
 
+        const candidate = candidates.find(c => c.id === confirmDialog.candidateId);
+        if (!candidate?.candidate_application_id) {
+            setConfirmDialog(null);
+            return;
+        }
+
+        // Optimistic update
         setCandidates((prev) =>
-            prev.map((candidate) =>
-                candidate.id === confirmDialog.candidateId
-                    ? { ...candidate, status: confirmDialog.toStatus }
-                    : candidate
+            prev.map((c) =>
+                c.id === confirmDialog.candidateId
+                    ? { ...c, status: confirmDialog.toStatus }
+                    : c
             )
         );
 
         if (selectedCandidate && selectedCandidate.id === confirmDialog.candidateId) {
             setSelectedCandidate({ ...selectedCandidate, status: confirmDialog.toStatus });
+        }
+
+        try {
+            await updateCandidateApplication(candidate.candidate_application_id, {
+                status: confirmDialog.toStatus,
+            });
+        } catch (error) {
+            console.error("Failed to update status:", error);
+            // Revert on failure
+            setCandidates((prev) =>
+                prev.map((c) =>
+                    c.id === confirmDialog.candidateId
+                        ? { ...c, status: confirmDialog.fromStatus }
+                        : c
+                )
+            );
+            alert("Failed to update candidate status.");
         }
 
         setConfirmDialog(null);
@@ -269,8 +391,23 @@ export default function CandidatePipeline() {
         router.back();
     };
 
-    const onAddCandidate = () => {
-        router.push(`/org/candidates/create`);
+    const handleAddCandidate = async () => {
+        if (!selectedCandidateId || !params.id) return;
+        setAddCandidateLoading(true);
+        try {
+            await createCandidateApplication({
+                candidate_id: Number(selectedCandidateId),
+                manpower_request_id: Number(params.id),
+            });
+            setAddCandidateOpen(false);
+            setSelectedCandidateId("");
+            fetchCandidates();
+        } catch (error) {
+            console.error("Failed to add candidate:", error);
+            alert("Failed to add candidate.");
+        } finally {
+            setAddCandidateLoading(false);
+        }
     };
 
     return (
@@ -291,7 +428,7 @@ export default function CandidatePipeline() {
                         </div>
                     </div>
 
-                    <button onClick={onAddCandidate} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm">
+                    <button onClick={() => setAddCandidateOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm">
                         <Plus className="w-4 h-4" />
                         Add Candidate
                     </button>
@@ -398,10 +535,50 @@ export default function CandidatePipeline() {
                                             Submit Interview Result
                                         </Button>
 
-                                        <div className="text-center py-8 text-gray-500">
-                                            <Video className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                                            <p>Interview data loaded from API</p>
-                                        </div>
+                                        {interviewsLoading ? (
+                                            <div className="space-y-3">
+                                                <Skeleton className="h-20 rounded-lg" />
+                                                <Skeleton className="h-20 rounded-lg" />
+                                            </div>
+                                        ) : candidateInterviews.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {candidateInterviews.map((interview) => (
+                                                    <div key={interview.id} className="bg-gray-50 rounded-lg p-4 space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <Badge variant="outline" className="capitalize">{interview.type}</Badge>
+                                                            <Badge className={
+                                                                interview.result === "passed" ? "bg-green-100 text-green-700" :
+                                                                interview.result === "failed" ? "bg-red-100 text-red-700" :
+                                                                "bg-blue-100 text-blue-700"
+                                                            }>
+                                                                {interview.result || interview.status || "scheduled"}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                            <Calendar className="w-3 h-3" />
+                                                            {new Date(interview.scheduled_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                                                            {" "}
+                                                            {new Date(interview.scheduled_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                            <Clock className="w-3 h-3" />
+                                                            {interview.duration_minutes} minutes
+                                                        </div>
+                                                        {interview.location && (
+                                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                                <MapPin className="w-3 h-3" />
+                                                                {interview.location}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8 text-gray-500">
+                                                <Video className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                                <p>No interviews scheduled yet</p>
+                                            </div>
+                                        )}
                                     </TabsContent>
 
                                     {/* Offer Tab */}
@@ -414,10 +591,106 @@ export default function CandidatePipeline() {
                                             Create Offer
                                         </Button>
 
-                                        <div className="text-center py-8 text-gray-500">
-                                            <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                                            <p>Offer data loaded from API</p>
-                                        </div>
+                                        {offersLoading ? (
+                                            <div className="space-y-3">
+                                                <Skeleton className="h-24 rounded-lg" />
+                                            </div>
+                                        ) : candidateOffers.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {candidateOffers.map((offer) => (
+                                                    <div key={offer.id} className="bg-gray-50 rounded-lg p-4 space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-semibold text-gray-900">{offer.position}</p>
+                                                            <Badge className={
+                                                                offer.status === "accepted" ? "bg-green-100 text-green-700" :
+                                                                offer.status === "rejected" ? "bg-red-100 text-red-700" :
+                                                                offer.status === "sent" ? "bg-blue-100 text-blue-700" :
+                                                                offer.status === "withdrawn" ? "bg-gray-100 text-gray-700" :
+                                                                "bg-amber-100 text-amber-700"
+                                                            }>
+                                                                {offer.status}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                            <DollarSign className="w-3 h-3" />
+                                                            {formatCurrency(offer.base_salary)}
+                                                        </div>
+                                                        {offer.employment_type && (
+                                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                                <Briefcase className="w-3 h-3" />
+                                                                <span className="capitalize">{offer.employment_type.replace("_", " ")}</span>
+                                                            </div>
+                                                        )}
+                                                        {offer.start_date && (
+                                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                                <Calendar className="w-3 h-3" />
+                                                                Start: {new Date(offer.start_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex gap-2 mt-2">
+                                                            {offer.status === "draft" && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setSelectedOffer({
+                                                                            id: offer.id,
+                                                                            decision: "sent",
+                                                                            candidateName: selectedCandidate?.name,
+                                                                            position: offer.position,
+                                                                        });
+                                                                        setOfferDecisionModalOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <Send className="w-3 h-3 mr-1" />
+                                                                    Send Offer
+                                                                </Button>
+                                                            )}
+                                                            {offer.status === "sent" && (
+                                                                <>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        className="bg-green-600 hover:bg-green-700"
+                                                                        onClick={() => {
+                                                                            setSelectedOffer({
+                                                                                id: offer.id,
+                                                                                decision: "accepted",
+                                                                                candidateName: selectedCandidate?.name,
+                                                                                position: offer.position,
+                                                                            });
+                                                                            setOfferDecisionModalOpen(true);
+                                                                        }}
+                                                                    >
+                                                                        Accept
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="text-red-600 border-red-200 hover:bg-red-50"
+                                                                        onClick={() => {
+                                                                            setSelectedOffer({
+                                                                                id: offer.id,
+                                                                                decision: "rejected",
+                                                                                candidateName: selectedCandidate?.name,
+                                                                                position: offer.position,
+                                                                            });
+                                                                            setOfferDecisionModalOpen(true);
+                                                                        }}
+                                                                    >
+                                                                        Reject
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8 text-gray-500">
+                                                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                                <p>No offers created yet</p>
+                                            </div>
+                                        )}
                                     </TabsContent>
                                 </Tabs>
                             </>
@@ -456,7 +729,10 @@ export default function CandidatePipeline() {
                 <ScheduleInterviewModal
                     open={scheduleInterviewModalOpen}
                     onOpenChange={setScheduleInterviewModalOpen}
-                    onScheduled={fetchCandidates}
+                    onScheduled={() => {
+                        fetchCandidates();
+                        if (selectedCandidate) handleCandidateClick(selectedCandidate);
+                    }}
                     candidateApplicationId={selectedCandidate?.candidate_application_id}
                     manpowerRequestId={Number(params.id)}
                 />
@@ -465,7 +741,10 @@ export default function CandidatePipeline() {
                 <InterviewResultModal
                     open={interviewResultModalOpen}
                     onOpenChange={setInterviewResultModalOpen}
-                    onResultSubmitted={fetchCandidates}
+                    onResultSubmitted={() => {
+                        fetchCandidates();
+                        if (selectedCandidate) handleCandidateClick(selectedCandidate);
+                    }}
                     interview={selectedCandidate ? {
                         candidateName: selectedCandidate.name,
                         position: selectedCandidate.position,
@@ -476,7 +755,10 @@ export default function CandidatePipeline() {
                 <CreateOfferModal
                     open={createOfferModalOpen}
                     onOpenChange={setCreateOfferModalOpen}
-                    onCreated={fetchCandidates}
+                    onCreated={() => {
+                        fetchCandidates();
+                        if (selectedCandidate) handleCandidateClick(selectedCandidate);
+                    }}
                     candidateApplicationId={selectedCandidate?.candidate_application_id}
                     position={selectedCandidate?.position}
                     candidateName={selectedCandidate?.name}
@@ -486,9 +768,46 @@ export default function CandidatePipeline() {
                 <OfferDecisionModal
                     open={offerDecisionModalOpen}
                     onOpenChange={setOfferDecisionModalOpen}
-                    onDecisionMade={fetchCandidates}
+                    onDecisionMade={() => {
+                        fetchCandidates();
+                        if (selectedCandidate) handleCandidateClick(selectedCandidate);
+                    }}
                     offer={selectedOffer}
                 />
+
+                {/* Add Candidate Dialog */}
+                <Dialog open={addCandidateOpen} onOpenChange={setAddCandidateOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Add Candidate</DialogTitle>
+                            <DialogDescription>
+                                Select a candidate from the talent pool to add to this pipeline
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Label>Candidate *</Label>
+                            <Combobox
+                                options={candidateOptions}
+                                value={selectedCandidateId}
+                                onValueChange={setSelectedCandidateId}
+                                placeholder="Select candidate..."
+                                searchPlaceholder="Search candidate name..."
+                                emptyText="No candidates found."
+                                loading={candidateListLoading}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setAddCandidateOpen(false)}>Cancel</Button>
+                            <Button
+                                onClick={handleAddCandidate}
+                                disabled={!selectedCandidateId || addCandidateLoading}
+                                className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
+                            >
+                                {addCandidateLoading ? "Adding..." : "Add Candidate"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </DndProvider>
     );

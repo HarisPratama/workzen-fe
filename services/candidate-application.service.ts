@@ -8,7 +8,7 @@ export type CreateCandidateApplicationPayload = {
 export async function createCandidateApplication(
     payload: CreateCandidateApplicationPayload
 ) {
-    const resp = await apiFetch(`candidate-application`, {
+    const resp = await apiFetch(`candidate-applications`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -23,9 +23,28 @@ export async function createCandidateApplication(
     return resp.json();
 }
 
+export async function updateCandidateApplication(
+    id: number,
+    payload: { status?: string; stage?: string }
+) {
+    const resp = await apiFetch(`candidate-applications/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+        throw new Error("Failed to update candidate application.");
+    }
+
+    return resp.json();
+}
+
 export async function getCandidatesForManpowerRequest(manpowerRequestId: string) {
     const resp = await apiFetch(
-        `manpower_requests/${manpowerRequestId}/candidates`,
+        `manpower-requests/${manpowerRequestId}/candidates`,
         {
             method: "GET",
         }
