@@ -61,10 +61,7 @@ function AppSidebar({ activeMenu, onMenuClick }: AppSidebarProps) {
             <SidebarContent className="bg-white">
                 {/* Logo */}
                 <div className="p-6 flex items-center gap-3">
-                    <Image src="/workzen.png" alt="WorkZen" width={32} height={32} className="rounded-lg" />
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-900">WorkZen</h2>
-                    </div>
+                    <Image src="/workzen.png" alt="WorkZen" width={120} height={120} className="rounded-lg" />
                 </div>
 
                 {/* Organization Section */}
