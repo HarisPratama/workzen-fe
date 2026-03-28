@@ -17,7 +17,11 @@
       "Bash(npm install:*)",
       "Bash(ls -la /Users/devita/Documents/saas/hris-fe/*.ts /Users/devita/Documents/saas/hris-fe/*.tsx)",
       "Bash(find /Users/devita/Documents/saas/hris-fe/services -type f -name *.ts)",
-      "Bash(cat /Users/devita/Documents/saas/hris-fe/.env*)"
+      "Bash(cat /Users/devita/Documents/saas/hris-fe/.env*)",
+      "Bash(find /Users/devita/Documents/saas/hris-fe/app/_components -name *idebar* -o -name *sidebar*)",
+      "Bash(find /Users/devita/Documents/saas/hris-fe -path */node_modules -prune -o -name *permission* -o -name *rbac* -type f -print)",
+      "Bash(find /Users/devita/Documents/saas/hris-fe -path */node_modules -prune -o -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\) -print)",
+      "Bash(find /Users/devita/Documents/saas/hris-fe -path */node_modules -prune -o -type f \\\\\\(-name *.config.* -o -name *.enum.* -o -name *constant* \\\\\\) -print)"
     ]
   }
 }

@@ -1,11 +1,15 @@
+"use client"
 import SidebarLayout from "@/app/_components/Sidebar";
+import { AuthProvider } from "@/hooks/use-auth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode; }){
     return (
-        <div className="bg-gray-50">
-            <SidebarLayout>
-                {children}
-            </SidebarLayout>
-        </div>
+        <AuthProvider>
+            <div className="bg-gray-50">
+                <SidebarLayout>
+                    {children}
+                </SidebarLayout>
+            </div>
+        </AuthProvider>
     );
 }

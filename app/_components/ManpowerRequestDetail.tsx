@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -46,6 +47,7 @@ import { getCandidates } from "@/services/candidate.service";
 import { updateManpowerRequest, deleteManpowerRequest } from "@/services/manpower_request.service";
 import { getListClient } from "@/services/client.service";
 import { useFetch } from "@/hooks/use-fetch";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 
 interface ManpowerRequestDetailProps {
   onBack: () => void;
@@ -70,12 +72,14 @@ interface CandidateApplication {
 
 export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefetch }: ManpowerRequestDetailProps) {
   const router = useRouter();
+  const { can } = useAuth();
   const [activeTab, setActiveTab] = useState("detail");
   const [candidates, setCandidates] = useState<CandidateApplication[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [addCandidateOpen, setAddCandidateOpen] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [addCandidateLoading, setAddCandidateLoading] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Edit state
   const [editOpen, setEditOpen] = useState(false);
@@ -133,12 +137,13 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
   };
 
   const handleDeleteRequest = async () => {
-    if (!confirm("Delete this manpower request? This cannot be undone.")) return;
     try {
       await deleteManpowerRequest(String(manpowerRequest.id));
       router.push("/org/manpower-request");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete manpower request.");
+    } finally {
+      setDeleteConfirmOpen(false);
     }
   };
 
@@ -262,7 +267,7 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
                 :
                 <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium ${getStatusColor(manpowerRequest?.status)}`}>
                   {manpowerRequest?.status === "IN_PROGRESS" ? <Clock className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
-                  {manpowerRequest?.status.replace("_", " ")}
+                  {manpowerRequest?.status?.replace("_", " ")}
                 </div>
               }
             </div>
@@ -277,12 +282,16 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
         <div className="flex gap-3">
           {!loading && (
             <>
-              <Button variant="outline" onClick={openEditDialog}>
-                <Edit className="w-4 h-4 mr-2" />Edit
-              </Button>
-              <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={handleDeleteRequest}>
-                <Trash2 className="w-4 h-4 mr-2" />Delete
-              </Button>
+              {can("manpower-request:edit") && (
+                <Button variant="outline" onClick={openEditDialog}>
+                  <Edit className="w-4 h-4 mr-2" />Edit
+                </Button>
+              )}
+              {can("manpower-request:delete") && (
+                <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteConfirmOpen(true)}>
+                  <Trash2 className="w-4 h-4 mr-2" />Delete
+                </Button>
+              )}
               <button
                 onClick={() => onViewCandidates(String(manpowerRequest?.id))}
                 className="flex items-center gap-2 px-5 py-2.5 bg-white border border-pink-600 text-pink-600 rounded-lg hover:bg-pink-50 transition-all font-medium"
@@ -614,6 +623,16 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete Manpower Request"
+        description="Are you sure you want to delete this manpower request? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteRequest}
+      />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Plus, Search, Trash2, Briefcase, MapPin, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
@@ -17,6 +18,7 @@ import { Input } from "@/app/_components/ui/input";
 import { Skeleton } from "@/app/_components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { getAssignments, deleteAssignment, updateAssignment } from "@/services/assignment.service";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { useFetch } from "@/hooks/use-fetch";
 
 interface Assignment {
@@ -38,9 +40,11 @@ interface Assignment {
 
 export default function AssignmentsPage() {
     const router = useRouter();
+    const { can } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
     const [page, setPage] = useState(1);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
     const { data, loading, refetch } = useFetch(
         () => getAssignments({ page, limit: 10, search: searchQuery, status: statusFilter }),
@@ -49,13 +53,14 @@ export default function AssignmentsPage() {
     );
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this assignment?")) return;
         try {
             await deleteAssignment(String(id));
             refetch();
         } catch (err) {
             console.error(err);
             toast.error(err instanceof Error ? err.message : "Failed to delete assignment.");
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -99,13 +104,15 @@ export default function AssignmentsPage() {
                     <h2 className="text-3xl font-bold text-gray-900">Assignments</h2>
                     <p className="text-sm text-gray-600 mt-1">Manage employee client assignments and projects</p>
                 </div>
-                <button
-                    onClick={() => router.push("/org/assignments/create")}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    New Assignment
-                </button>
+                {can("assignments:create") && (
+                    <button
+                        onClick={() => router.push("/org/assignments/create")}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        New Assignment
+                    </button>
+                )}
             </div>
 
             {/* Stats */}
@@ -226,14 +233,16 @@ export default function AssignmentsPage() {
                                                 <Button variant="ghost" size="sm"><span className="text-gray-600">&#8942;</span></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                {asg.status === "active" && (
+                                                {can("assignments:edit") && asg.status === "active" && (
                                                     <DropdownMenuItem onClick={() => handleComplete(asg.id)}>
                                                         <CheckCircle className="w-4 h-4 mr-2" />Mark Completed
                                                     </DropdownMenuItem>
                                                 )}
-                                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(asg.id)}>
-                                                    <Trash2 className="w-4 h-4 mr-2" />Delete
-                                                </DropdownMenuItem>
+                                                {can("assignments:delete") && (
+                                                    <DropdownMenuItem className="text-red-600" onClick={() => setDeleteConfirmId(asg.id)}>
+                                                        <Trash2 className="w-4 h-4 mr-2" />Delete
+                                                    </DropdownMenuItem>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -257,6 +266,16 @@ export default function AssignmentsPage() {
                     <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={!!deleteConfirmId}
+                onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+                title="Delete Assignment"
+                description="Are you sure you want to delete this assignment? This action cannot be undone."
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+            />
         </div>
     );
 }

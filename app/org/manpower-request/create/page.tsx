@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import {ManpowerRequestCreate} from "@/app/_components/ManpowerRequestCreate";
 import {useRouter} from "next/navigation";
 import {createManpowerRequest} from "@/services/manpower_request.service";
@@ -6,6 +7,7 @@ import {CreateManpowerRequest} from "@/const/type/request/manpower-request.type"
 import {useEffect, useState} from "react";
 import {getListClient} from "@/services/client.service";
 import AlertDialog from "@/app/_components/AlertDialog";
+import { toast } from "sonner";
 
 const CreateMR = () => {
     const router = useRouter();
@@ -53,7 +55,7 @@ const CreateMR = () => {
                 setOpenDialog(true);
             }
         } catch (err) {
-            console.log(err, '<<< err')
+            toast.error(err instanceof Error ? err.message : "Failed to create manpower request.");
         }
 
     };

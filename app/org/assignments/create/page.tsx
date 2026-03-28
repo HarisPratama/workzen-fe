@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ArrowLeft, User, Briefcase, MapPin, Calendar, DollarSign } from "lucide-react";
 import { useState } from "react";

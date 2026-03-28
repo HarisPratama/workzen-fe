@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { FileText, Plus, Users, Briefcase, CalendarDays, DollarSign, UserPlus, ClipboardList, MessageSquare, Gift } from "lucide-react";
 import { MetricCard } from "@/app/_components/MetricCard";
 import { Skeleton } from "@/app/_components/ui/skeleton";
@@ -8,6 +9,7 @@ import { getOverview } from "@/services/overview.service";
 
 const Overview = () => {
     const router = useRouter();
+    const { can } = useAuth();
 
     const { data: overviewData, loading } = useFetch(() => getOverview(), []);
     const overview = overviewData?.data;
@@ -21,15 +23,17 @@ const Overview = () => {
                         <h2 className="text-3xl font-bold text-gray-900">Talent Overview</h2>
                         <p className="text-sm text-gray-600 mt-1">Monitor your organization&#39;s health and growth.</p>
                     </div>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => router.push("/org/employees/create")}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Employee
-                        </button>
-                    </div>
+                    {can("employees:create") && (
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => router.push("/org/employees/create")}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Add Employee
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

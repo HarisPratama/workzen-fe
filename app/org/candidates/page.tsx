@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Plus, Search, Mail, Phone, Eye, Edit, Trash2, UserCheck, UserX } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
@@ -29,6 +30,7 @@ import { Input } from "../../_components/ui/input";
 import { Skeleton } from "../../_components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { getCandidates, deleteCandidate } from "@/services/candidate.service";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 
 interface Candidate {
     id: number;
@@ -46,6 +48,7 @@ interface Candidate {
 
 const CandidatePool = () => {
     const router = useRouter();
+    const { can } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -53,6 +56,7 @@ const CandidatePool = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
+    const [deleteConfirmCandidate, setDeleteConfirmCandidate] = useState<Candidate | null>(null);
 
     const fetchCandidates = useCallback(async () => {
         setLoading(true);
@@ -343,22 +347,18 @@ const CandidatePool = () => {
                                                     <Eye className="w-4 h-4 mr-2" />
                                                     View Details
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => onViewDetail(candidate.id)}>
-                                                    <Edit className="w-4 h-4 mr-2" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-600" onClick={async () => {
-                                                    if (!confirm(`Delete candidate "${candidate.full_name}"?`)) return;
-                                                    try {
-                                                        await deleteCandidate(String(candidate.id));
-                                                        fetchCandidates();
-                                                    } catch (err) {
-                                                        toast.error(err instanceof Error ? err.message : "Failed to delete candidate.");
-                                                    }
-                                                }}>
-                                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    Delete
-                                                </DropdownMenuItem>
+                                                {can("candidates:edit") && (
+                                                    <DropdownMenuItem onClick={() => onViewDetail(candidate.id)}>
+                                                        <Edit className="w-4 h-4 mr-2" />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {can("candidates:delete") && (
+                                                    <DropdownMenuItem className="text-red-600" onClick={() => setDeleteConfirmCandidate(candidate)}>
+                                                        <Trash2 className="w-4 h-4 mr-2" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -402,6 +402,26 @@ const CandidatePool = () => {
                     </Button>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={!!deleteConfirmCandidate}
+                onOpenChange={(open) => !open && setDeleteConfirmCandidate(null)}
+                title="Delete Candidate"
+                description={`Are you sure you want to delete "${deleteConfirmCandidate?.full_name}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={async () => {
+                    if (!deleteConfirmCandidate) return;
+                    try {
+                        await deleteCandidate(String(deleteConfirmCandidate.id));
+                        fetchCandidates();
+                    } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to delete candidate.");
+                    } finally {
+                        setDeleteConfirmCandidate(null);
+                    }
+                }}
+            />
         </div>
     );
 }

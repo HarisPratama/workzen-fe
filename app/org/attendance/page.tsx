@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Search, Clock, CheckCircle, XCircle, CalendarDays, Plus, Trash2, Edit } from "lucide-react";
 import { useState } from "react";
@@ -22,6 +23,7 @@ import { Label } from "@/app/_components/ui/label";
 import { Textarea } from "@/app/_components/ui/textarea";
 import { Combobox } from "@/app/_components/ui/combobox";
 import { getAttendances, createAttendance, deleteAttendance, updateAttendance } from "@/services/attendance.service";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { getEmployees } from "@/services/employee.service";
 import { useFetch } from "@/hooks/use-fetch";
 
@@ -39,6 +41,7 @@ interface Attendance {
 }
 
 export default function AttendancePage() {
+    const { can } = useAuth();
     const [page, setPage] = useState(1);
     const [statusFilter, setStatusFilter] = useState("");
     const [startDate, setStartDate] = useState("");
@@ -54,6 +57,7 @@ export default function AttendancePage() {
         check_out: "",
         notes: "",
     });
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const { data, loading, refetch } = useFetch(
         () => getAttendances({ page, limit: 10, status: statusFilter, start_date: startDate, end_date: endDate }),
@@ -119,13 +123,14 @@ export default function AttendancePage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this attendance record?")) return;
         try {
             await deleteAttendance(id);
             refetch();
         } catch (err) {
             console.error(err);
             toast.error(err instanceof Error ? err.message : "Failed to delete attendance.");
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -177,13 +182,15 @@ export default function AttendancePage() {
                     <h2 className="text-3xl font-bold text-gray-900">Attendance</h2>
                     <p className="text-sm text-gray-600 mt-1">Track and manage employee attendance records</p>
                 </div>
-                <button
-                    onClick={() => setCreateModalOpen(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Record
-                </button>
+                {can("attendance:create") && (
+                    <button
+                        onClick={() => setCreateModalOpen(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Record
+                    </button>
+                )}
             </div>
 
             {/* Stats */}
@@ -302,12 +309,16 @@ export default function AttendancePage() {
                                                 <Button variant="ghost" size="sm"><span className="text-gray-600">&#8942;</span></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => openEdit(att)}>
-                                                    <Edit className="w-4 h-4 mr-2" />Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(att.id)}>
-                                                    <Trash2 className="w-4 h-4 mr-2" />Delete
-                                                </DropdownMenuItem>
+                                                {can("attendance:edit") && (
+                                                    <DropdownMenuItem onClick={() => openEdit(att)}>
+                                                        <Edit className="w-4 h-4 mr-2" />Edit
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {can("attendance:delete") && (
+                                                    <DropdownMenuItem className="text-red-600" onClick={() => setDeleteConfirmId(att.id)}>
+                                                        <Trash2 className="w-4 h-4 mr-2" />Delete
+                                                    </DropdownMenuItem>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -458,6 +469,16 @@ export default function AttendancePage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!deleteConfirmId}
+                onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+                title="Delete Attendance Record"
+                description="Are you sure you want to delete this attendance record? This action cannot be undone."
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+            />
         </div>
     );
 }

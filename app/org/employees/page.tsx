@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Plus, Search, Eye, Edit, Trash2, Users, UserCheck, Phone } from "lucide-react";
 import { useState } from "react";
@@ -13,6 +14,7 @@ import { Input } from "@/app/_components/ui/input";
 import { Skeleton } from "@/app/_components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { getEmployees, deleteEmployee } from "@/services/employee.service";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { useFetch } from "@/hooks/use-fetch";
 
 interface Employee {
@@ -27,8 +29,10 @@ interface Employee {
 
 export default function EmployeesPage() {
     const router = useRouter();
+    const { can } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [page, setPage] = useState(1);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
     const { data, loading, refetch } = useFetch(
         () => getEmployees({ page, limit: 10, search: searchQuery }),
@@ -37,13 +41,14 @@ export default function EmployeesPage() {
     );
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this employee?")) return;
         try {
             await deleteEmployee(String(id));
             refetch();
         } catch (err) {
             console.error(err);
             toast.error(err instanceof Error ? err.message : "Failed to delete employee.");
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -61,13 +66,15 @@ export default function EmployeesPage() {
                         Manage all employees in your organization
                     </p>
                 </div>
-                <button
-                    onClick={() => router.push("/org/employees/create")}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Employee
-                </button>
+                {can("employees:create") && (
+                    <button
+                        onClick={() => router.push("/org/employees/create")}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Employee
+                    </button>
+                )}
             </div>
 
             {/* Stats Cards */}
@@ -191,14 +198,18 @@ export default function EmployeesPage() {
                                                     <Eye className="w-4 h-4 mr-2" />
                                                     View Details
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => router.push(`/org/employees/${emp.id}`)}>
-                                                    <Edit className="w-4 h-4 mr-2" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(emp.id)}>
-                                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    Delete
-                                                </DropdownMenuItem>
+                                                {can("employees:edit") && (
+                                                    <DropdownMenuItem onClick={() => router.push(`/org/employees/${emp.id}`)}>
+                                                        <Edit className="w-4 h-4 mr-2" />
+                                                        Edit
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {can("employees:delete") && (
+                                                    <DropdownMenuItem className="text-red-600" onClick={() => setDeleteConfirmId(emp.id)}>
+                                                        <Trash2 className="w-4 h-4 mr-2" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -232,6 +243,16 @@ export default function EmployeesPage() {
                     </Button>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={!!deleteConfirmId}
+                onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+                title="Delete Employee"
+                description="Are you sure you want to delete this employee? This action cannot be undone."
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+            />
         </div>
     );
 }

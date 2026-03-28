@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ArrowLeft, Phone, CreditCard, Calendar, User, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -26,6 +27,7 @@ interface Employee {
 export default function EmployeeDetailPage() {
     const router = useRouter();
     const params = useParams();
+    const { can } = useAuth();
     const employeeId = params.id as string;
 
     const { data, loading, refetch } = useFetch(
@@ -118,12 +120,16 @@ export default function EmployeeDetailPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={openEdit}>
-                        <Edit className="w-4 h-4 mr-2" />Edit
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setDeleteOpen(true)}>
-                        <Trash2 className="w-4 h-4 mr-2" />Delete
-                    </Button>
+                    {can("employees:edit") && (
+                        <Button variant="outline" size="sm" onClick={openEdit}>
+                            <Edit className="w-4 h-4 mr-2" />Edit
+                        </Button>
+                    )}
+                    {can("employees:delete") && (
+                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setDeleteOpen(true)}>
+                            <Trash2 className="w-4 h-4 mr-2" />Delete
+                        </Button>
+                    )}
                 </div>
             </div>
 

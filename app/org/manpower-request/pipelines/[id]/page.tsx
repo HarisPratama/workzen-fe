@@ -14,6 +14,7 @@ import {
     Clock,
     Plus,
     X,
+    XCircle,
     Send,
     DollarSign
 } from "lucide-react";
@@ -28,16 +29,6 @@ import {
     SheetTitle,
 } from "@/app/_components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/_components/ui/tabs";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/app/_components/ui/alert-dialog";
 import {
     Dialog,
     DialogContent,
@@ -61,8 +52,12 @@ import { InterviewResultModal } from "@/app/_components/InterviewResultModal";
 import { getCandidatesForManpowerRequest, createCandidateApplication, updateCandidateApplication } from "@/services/candidate-application.service";
 import { getCandidates } from "@/services/candidate.service";
 import { getInterviews } from "@/services/interview.service";
-import { getOffers } from "@/services/offer.service";
+import { getOffers, getDetailOffer } from "@/services/offer.service";
+import { getDetailManpowerRequest } from "@/services/manpower_request.service";
 import { useFetch } from "@/hooks/use-fetch";
+import { useAuth } from "@/hooks/use-auth";
+import { HireCandidateModal } from "@/app/_components/HireCandidateModal";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 
 type CandidateStatus = "APPLIED" | "SCREENING" | "INTERVIEW" | "OFFERED" | "HIRED";
 
@@ -72,6 +67,7 @@ interface Candidate {
     name: string;
     email: string;
     phone: string;
+    citizen_id?: string;
     status: CandidateStatus;
     appliedDate: string;
     lastActivity: string;
@@ -206,6 +202,7 @@ const formatCurrency = (amount: number) =>
 export default function CandidatePipeline() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
+    const { can } = useAuth();
 
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [loading, setLoading] = useState(true);
@@ -234,21 +231,48 @@ export default function CandidatePipeline() {
     const [selectedCandidateId, setSelectedCandidateId] = useState("");
     const [addCandidateLoading, setAddCandidateLoading] = useState(false);
 
+    // Hire modal
+    const [hireModalOpen, setHireModalOpen] = useState(false);
+    const [hireCandidateData, setHireCandidateData] = useState<Candidate | null>(null);
+    const [hireAcceptedOffer, setHireAcceptedOffer] = useState<OfferData | null>(null);
     // Drawer data
     const [candidateInterviews, setCandidateInterviews] = useState<InterviewData[]>([]);
     const [candidateOffers, setCandidateOffers] = useState<OfferData[]>([]);
     const [interviewsLoading, setInterviewsLoading] = useState(false);
     const [offersLoading, setOffersLoading] = useState(false);
 
-    const { data: candidateListData, loading: candidateListLoading } = useFetch(
-        () => getCandidates({ limit: 100 }), []
-    );
+    // Lazy search for candidate combobox
+    const [candidateSearch, setCandidateSearch] = useState("");
+    const [debouncedCandidateSearch, setDebouncedCandidateSearch] = useState("");
+    const [candidateOptions, setCandidateOptions] = useState<{ value: string; label: string; sublabel: string }[]>([]);
+    const [candidateListLoading, setCandidateListLoading] = useState(false);
 
-    const candidateOptions = (candidateListData?.data ?? []).map((c: { id: number; full_name: string; email: string }) => ({
-        value: String(c.id),
-        label: c.full_name,
-        sublabel: c.email,
-    }));
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedCandidateSearch(candidateSearch), 400);
+        return () => clearTimeout(timer);
+    }, [candidateSearch]);
+
+    useEffect(() => {
+        if (!addCandidateOpen) return;
+        setCandidateListLoading(true);
+        getCandidates({ search: debouncedCandidateSearch, limit: 10 })
+            .then((res) => {
+                setCandidateOptions(
+                    (res.data ?? []).map((c: { id: number; full_name: string; email: string }) => ({
+                        value: String(c.id),
+                        label: c.full_name,
+                        sublabel: c.email,
+                    }))
+                );
+            })
+            .catch(() => setCandidateOptions([]))
+            .finally(() => setCandidateListLoading(false));
+    }, [debouncedCandidateSearch, addCandidateOpen]);
+
+    // Fetch manpower request detail for client_id
+    const { data: mrDetailData } = useFetch(
+        () => getDetailManpowerRequest(params.id), [params.id]
+    );
 
     const fetchCandidates = useCallback(async () => {
         if (!params.id) return;
@@ -259,7 +283,7 @@ export default function CandidatePipeline() {
 
             const mapped: Candidate[] = data.map((app: {
                 id: number;
-                candidate?: { id: number; full_name: string; email: string; phone: string };
+                candidate?: { id: number; full_name: string; email: string; phone: string; citizen_id?: string };
                 status?: string;
                 created_at?: string;
                 updated_at?: string;
@@ -269,6 +293,7 @@ export default function CandidatePipeline() {
                 name: app.candidate?.full_name ?? "-",
                 email: app.candidate?.email ?? "-",
                 phone: app.candidate?.phone ?? "-",
+                citizen_id: app.candidate?.citizen_id,
                 status: (app.status?.toUpperCase() as CandidateStatus) || "APPLIED",
                 appliedDate: app.created_at
                     ? new Date(app.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -298,42 +323,50 @@ export default function CandidatePipeline() {
         setCandidateInterviews([]);
         setCandidateOffers([]);
 
-        // Fetch interviews for this candidate application
+        // Fetch interviews and offers for this candidate application
         if (candidate.candidate_application_id) {
             setInterviewsLoading(true);
-            try {
-                const res = await getInterviews({ limit: 50 });
-                const allInterviews = res.data ?? [];
-                const filtered = allInterviews.filter(
-                    (i: { candidate_application_id?: number }) =>
-                        i.candidate_application_id === candidate.candidate_application_id
-                );
-                setCandidateInterviews(filtered);
-            } catch {
-                setCandidateInterviews([]);
-            } finally {
-                setInterviewsLoading(false);
-            }
+            getInterviews({ candidate_application_id: candidate.candidate_application_id })
+                .then((res) => setCandidateInterviews(res.data ?? []))
+                .catch(() => setCandidateInterviews([]))
+                .finally(() => setInterviewsLoading(false));
 
-            // Fetch offers for this candidate application
             setOffersLoading(true);
-            try {
-                const res = await getOffers({ limit: 50 });
-                const allOffers = res.data ?? [];
-                const filtered = allOffers.filter(
-                    (o: { candidate_application_id?: number }) =>
-                        o.candidate_application_id === candidate.candidate_application_id
-                );
-                setCandidateOffers(filtered);
-            } catch {
-                setCandidateOffers([]);
-            } finally {
-                setOffersLoading(false);
-            }
+            getOffers({ candidate_application_id: candidate.candidate_application_id })
+                .then((res) => setCandidateOffers(res.data ?? []))
+                .catch(() => setCandidateOffers([]))
+                .finally(() => setOffersLoading(false));
         }
     };
 
-    const handleDrop = (candidateId: number, fromStatus: CandidateStatus, toStatus: CandidateStatus) => {
+    const handleDrop = async (candidateId: number, fromStatus: CandidateStatus, toStatus: CandidateStatus) => {
+        // Special handling for HIRED status
+        if (toStatus === "HIRED") {
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (!candidate?.candidate_application_id) return;
+
+            // Validate: must have an accepted offer
+            try {
+                const res = await getOffers({
+                    candidate_application_id: candidate.candidate_application_id,
+                    status: "accepted",
+                });
+                const acceptedOffer = (res.data ?? [])[0];
+
+                if (!acceptedOffer) {
+                    toast.error("Cannot hire this candidate. They must have an accepted offer first.");
+                    return;
+                }
+
+                setHireCandidateData(candidate);
+                setHireAcceptedOffer(acceptedOffer);
+                setHireModalOpen(true);
+            } catch (err) {
+                toast.error("Failed to validate offer status.");
+            }
+            return;
+        }
+
         setConfirmDialog({
             open: true,
             candidateId,
@@ -429,10 +462,12 @@ export default function CandidatePipeline() {
                         </div>
                     </div>
 
-                    <button onClick={() => setAddCandidateOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm">
-                        <Plus className="w-4 h-4" />
-                        Add Candidate
-                    </button>
+                    {can("candidates:create") && (
+                        <button onClick={() => setAddCandidateOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm">
+                            <Plus className="w-4 h-4" />
+                            Add Candidate
+                        </button>
+                    )}
                 </div>
 
                 {/* Kanban Board */}
@@ -474,7 +509,7 @@ export default function CandidatePipeline() {
                                     <SheetDescription>{selectedCandidate.position}</SheetDescription>
                                 </SheetHeader>
 
-                                <Tabs defaultValue="profile" className="mt-6">
+                                <Tabs defaultValue="profile" className="mt-6 p-6">
                                     <TabsList className="grid w-full grid-cols-3">
                                         <TabsTrigger value="profile">Profile</TabsTrigger>
                                         <TabsTrigger value="interview">Interview</TabsTrigger>
@@ -647,7 +682,7 @@ export default function CandidatePipeline() {
                                                                     Send Offer
                                                                 </Button>
                                                             )}
-                                                            {offer.status === "sent" && (
+                                                            {offer.status?.toLowerCase() === "sent" && (
                                                                 <>
                                                                     <Button
                                                                         size="sm"
@@ -662,7 +697,8 @@ export default function CandidatePipeline() {
                                                                             setOfferDecisionModalOpen(true);
                                                                         }}
                                                                     >
-                                                                        Accept
+                                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                                        Candidate Accepted
                                                                     </Button>
                                                                     <Button
                                                                         size="sm"
@@ -678,9 +714,32 @@ export default function CandidatePipeline() {
                                                                             setOfferDecisionModalOpen(true);
                                                                         }}
                                                                     >
-                                                                        Reject
+                                                                        <XCircle className="w-3 h-3 mr-1" />
+                                                                        Candidate Rejected
                                                                     </Button>
                                                                 </>
+                                                            )}
+                                                            {offer.status?.toLowerCase() === "accepted" && selectedCandidate?.status !== "HIRED" && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                                                                    onClick={async () => {
+                                                                        if (!selectedCandidate) return;
+                                                                        try {
+                                                                            const res = await getDetailOffer(String(offer.id));
+                                                                            const offerData = res.data ?? res;
+                                                                            setIsDrawerOpen(false);
+                                                                            setHireCandidateData(selectedCandidate);
+                                                                            setHireAcceptedOffer(offerData);
+                                                                            setHireModalOpen(true);
+                                                                        } catch {
+                                                                            toast.error("Failed to load offer details.");
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                                                    Proceed to Hire
+                                                                </Button>
                                                             )}
                                                         </div>
                                                     </div>
@@ -700,31 +759,14 @@ export default function CandidatePipeline() {
                 </Sheet>
 
                 {/* Confirmation Dialog */}
-                <AlertDialog open={confirmDialog?.open || false} onOpenChange={(open) => !open && setConfirmDialog(null)}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {confirmDialog && (
-                                    <>
-                                        Are you sure you want to move this candidate from{" "}
-                                        <strong>{confirmDialog.fromStatus}</strong> to{" "}
-                                        <strong>{confirmDialog.toStatus}</strong>?
-                                    </>
-                                )}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={confirmStatusChange}
-                                className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
-                            >
-                                Confirm
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                <ConfirmDialog
+                    open={confirmDialog?.open || false}
+                    onOpenChange={(open) => !open && setConfirmDialog(null)}
+                    title="Confirm Status Change"
+                    description={confirmDialog ? `Are you sure you want to move this candidate from "${confirmDialog.fromStatus}" to "${confirmDialog.toStatus}"?` : ""}
+                    confirmLabel="Confirm"
+                    onConfirm={confirmStatusChange}
+                />
 
                 {/* Schedule Interview Modal */}
                 <ScheduleInterviewModal
@@ -773,7 +815,30 @@ export default function CandidatePipeline() {
                         fetchCandidates();
                         if (selectedCandidate) handleCandidateClick(selectedCandidate);
                     }}
+                    onAccepted={async (offerId) => {
+                        if (!selectedCandidate) return;
+                        try {
+                            const res = await getDetailOffer(String(offerId));
+                            const offerData = res.data ?? res;
+                            setIsDrawerOpen(false);
+                            setHireCandidateData(selectedCandidate);
+                            setHireAcceptedOffer(offerData);
+                            setHireModalOpen(true);
+                        } catch {
+                            toast.error("Failed to load offer details. You can still hire by dragging the candidate to the Hired column.");
+                        }
+                    }}
                     offer={selectedOffer}
+                />
+
+                {/* Hire Candidate Modal */}
+                <HireCandidateModal
+                    open={hireModalOpen}
+                    onOpenChange={setHireModalOpen}
+                    candidate={hireCandidateData}
+                    acceptedOffer={hireAcceptedOffer}
+                    position={mrDetailData?.data?.position || ""}
+                    onHired={fetchCandidates}
                 />
 
                 {/* Add Candidate Dialog */}
@@ -791,6 +856,7 @@ export default function CandidatePipeline() {
                                 options={candidateOptions}
                                 value={selectedCandidateId}
                                 onValueChange={setSelectedCandidateId}
+                                onSearchChange={setCandidateSearch}
                                 placeholder="Select candidate..."
                                 searchPlaceholder="Search candidate name..."
                                 emptyText="No candidates found."

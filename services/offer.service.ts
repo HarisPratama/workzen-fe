@@ -7,6 +7,7 @@ type GetOffersParams = {
     status?: string;
     order_by?: string;
     order_type?: string;
+    candidate_application_id?: number;
 };
 
 export async function getOffers(data: GetOffersParams = {}) {
@@ -17,6 +18,7 @@ export async function getOffers(data: GetOffersParams = {}) {
         status = "",
         order_by = "",
         order_type = "",
+        candidate_application_id,
     } = data;
 
     const params = new URLSearchParams();
@@ -26,6 +28,7 @@ export async function getOffers(data: GetOffersParams = {}) {
     if (status) params.set("status", status);
     if (order_by) params.set("order_by", order_by);
     if (order_type) params.set("order_type", order_type);
+    if (candidate_application_id) params.set("candidate_application_id", String(candidate_application_id));
 
     const resp = await apiFetch(`offers?${params.toString()}`, {
         method: "GET",

@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Plus, DollarSign, Eye, Trash2, Clock, CheckCircle, FileText, CreditCard, Edit } from "lucide-react";
 import { useState } from "react";
@@ -20,6 +21,7 @@ import { Textarea } from "@/app/_components/ui/textarea";
 import { Combobox } from "@/app/_components/ui/combobox";
 import { getPayrolls, createPayroll, updatePayroll, processPayroll, markPayrollAsPaid, deletePayroll } from "@/services/payroll.service";
 import { getEmployees } from "@/services/employee.service";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { useFetch } from "@/hooks/use-fetch";
 
 interface Payroll {
@@ -42,6 +44,7 @@ const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount || 0);
 
 export default function PayrollPage() {
+    const { can } = useAuth();
     const [page, setPage] = useState(1);
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [createLoading, setCreateLoading] = useState(false);
@@ -55,6 +58,7 @@ export default function PayrollPage() {
         tax: "",
         notes: "",
     });
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const { data, loading, refetch } = useFetch(
         () => getPayrolls({ page, limit: 10 }),
@@ -192,13 +196,15 @@ export default function PayrollPage() {
                     <h2 className="text-3xl font-bold text-gray-900">Payroll</h2>
                     <p className="text-sm text-gray-600 mt-1">Manage employee payroll and compensation</p>
                 </div>
-                <button
-                    onClick={() => setCreateModalOpen(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    Create Payroll
-                </button>
+                {can("payroll:create") && (
+                    <button
+                        onClick={() => setCreateModalOpen(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Create Payroll
+                    </button>
+                )}
             </div>
 
             {/* Stats */}
@@ -277,22 +283,26 @@ export default function PayrollPage() {
                                                 <Button variant="ghost" size="sm"><span className="text-gray-600">&#8942;</span></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => openEdit(payroll)}>
-                                                    <Edit className="w-4 h-4 mr-2" />Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleProcess(payroll.id)}>
-                                                    <CreditCard className="w-4 h-4 mr-2" />Process
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleMarkPaid(payroll.id)}>
-                                                    <CheckCircle className="w-4 h-4 mr-2" />Mark as Paid
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-600" onClick={async () => {
-                                                    if (!confirm("Delete this payroll record?")) return;
-                                                    try { await deletePayroll(payroll.id); refetch(); }
-                                                    catch (err) { toast.error(err instanceof Error ? err.message : "Failed to delete payroll."); }
-                                                }}>
-                                                    <Trash2 className="w-4 h-4 mr-2" />Delete
-                                                </DropdownMenuItem>
+                                                {can("payroll:edit") && (
+                                                    <DropdownMenuItem onClick={() => openEdit(payroll)}>
+                                                        <Edit className="w-4 h-4 mr-2" />Edit
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {can("payroll:edit") && (
+                                                    <DropdownMenuItem onClick={() => handleProcess(payroll.id)}>
+                                                        <CreditCard className="w-4 h-4 mr-2" />Process
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {can("payroll:edit") && (
+                                                    <DropdownMenuItem onClick={() => handleMarkPaid(payroll.id)}>
+                                                        <CheckCircle className="w-4 h-4 mr-2" />Mark as Paid
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {can("payroll:delete") && (
+                                                    <DropdownMenuItem className="text-red-600" onClick={() => setDeleteConfirmId(payroll.id)}>
+                                                        <Trash2 className="w-4 h-4 mr-2" />Delete
+                                                    </DropdownMenuItem>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -455,6 +465,26 @@ export default function PayrollPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!deleteConfirmId}
+                onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+                title="Delete Payroll Record"
+                description="Are you sure you want to delete this payroll record? This action cannot be undone."
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={async () => {
+                    if (!deleteConfirmId) return;
+                    try {
+                        await deletePayroll(deleteConfirmId);
+                        refetch();
+                    } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to delete payroll.");
+                    } finally {
+                        setDeleteConfirmId(null);
+                    }
+                }}
+            />
         </div>
     );
 }

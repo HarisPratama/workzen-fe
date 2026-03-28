@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Search, Filter, Plus, Clock, CheckCircle, XCircle, AlertCircle, Eye, Edit, Trash2 } from "lucide-react";
 import {useEffect, useState} from "react";
@@ -27,6 +28,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {useRouter} from "next/navigation";
 import {getManpowerRequest, deleteManpowerRequest} from "@/services/manpower_request.service"
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 
 export interface ManpowerRequest {
   id: string;
@@ -53,6 +55,7 @@ interface ManpowerRequestListProps {
 
 export function ManpowerRequestList() {
   const router = useRouter();
+  const { can } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -60,6 +63,7 @@ export function ManpowerRequestList() {
   const [manpowerRequests, setManpowerRequests] = useState<ManpowerRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const fetchManpowerRequests = async () => {
     try {
@@ -137,14 +141,14 @@ export function ManpowerRequestList() {
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm("Delete this manpower request?")) return;
+  const handleDelete = async (id: string) => {
     try {
       await deleteManpowerRequest(id);
       fetchManpowerRequests();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete manpower request.");
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -156,13 +160,15 @@ export function ManpowerRequestList() {
           <h2 className="text-3xl font-bold text-gray-900">Manpower Requests</h2>
           <p className="text-sm text-gray-600 mt-1">Manage client manpower requirements and hiring progress</p>
         </div>
-        <button
-          onClick={handleCreateNew}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Create Request
-        </button>
+        {can("manpower-request:create") && (
+          <button
+            onClick={handleCreateNew}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Create Request
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -275,9 +281,11 @@ export function ManpowerRequestList() {
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetail(request.id); }}>
                         <Eye className="w-4 h-4 mr-2" />View Detail
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600" onClick={(e) => handleDelete(request.id, e)}>
-                        <Trash2 className="w-4 h-4 mr-2" />Delete
-                      </DropdownMenuItem>
+                      {can("manpower-request:delete") && (
+                        <DropdownMenuItem className="text-red-600" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(request.id); }}>
+                          <Trash2 className="w-4 h-4 mr-2" />Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -298,6 +306,16 @@ export function ManpowerRequestList() {
       <div className="flex items-center justify-between text-sm text-gray-600">
         <p>Showing {manpowerRequests.length} requests</p>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+        title="Delete Manpower Request"
+        description="Are you sure you want to delete this manpower request? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+      />
     </div>
   );
 }

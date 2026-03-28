@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Plus, Search, Building2, Edit, Trash2, Eye, MapPin } from "lucide-react";
 import { useState } from "react";
@@ -16,6 +17,7 @@ import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/app/_components/ui/dialog";
 import { getListClient, createClient, updateClient, deleteClient } from "@/services/client.service";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { useFetch } from "@/hooks/use-fetch";
 
 interface Client {
@@ -27,6 +29,7 @@ interface Client {
 }
 
 export default function ClientsPage() {
+    const { can } = useAuth();
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [createOpen, setCreateOpen] = useState(false);
@@ -36,6 +39,7 @@ export default function ClientsPage() {
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [createForm, setCreateForm] = useState({ company_name: "", address: "" });
     const [editForm, setEditForm] = useState({ company_name: "", address: "" });
+    const [deleteConfirmClient, setDeleteConfirmClient] = useState<Client | null>(null);
 
     const { data, loading, refetch } = useFetch(
         () => getListClient({ page, limit: 10, search: searchQuery }),
@@ -83,12 +87,13 @@ export default function ClientsPage() {
     };
 
     const handleDelete = async (client: Client) => {
-        if (!confirm(`Delete client "${client.company_name}"?`)) return;
         try {
             await deleteClient(String(client.id));
             refetch();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to delete client.");
+        } finally {
+            setDeleteConfirmClient(null);
         }
     };
 
@@ -100,13 +105,15 @@ export default function ClientsPage() {
                     <h2 className="text-3xl font-bold text-gray-900">Clients</h2>
                     <p className="text-sm text-gray-600 mt-1">Manage your client companies</p>
                 </div>
-                <button
-                    onClick={() => setCreateOpen(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Client
-                </button>
+                {can("clients:create") && (
+                    <button
+                        onClick={() => setCreateOpen(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Client
+                    </button>
+                )}
             </div>
 
             {/* Stats */}
@@ -208,12 +215,16 @@ export default function ClientsPage() {
                                                 <Button variant="ghost" size="sm"><span className="text-gray-600">&#8942;</span></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => openEdit(client)}>
-                                                    <Edit className="w-4 h-4 mr-2" />Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(client)}>
-                                                    <Trash2 className="w-4 h-4 mr-2" />Delete
-                                                </DropdownMenuItem>
+                                                {can("clients:edit") && (
+                                                    <DropdownMenuItem onClick={() => openEdit(client)}>
+                                                        <Edit className="w-4 h-4 mr-2" />Edit
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {can("clients:delete") && (
+                                                    <DropdownMenuItem className="text-red-600" onClick={() => setDeleteConfirmClient(client)}>
+                                                        <Trash2 className="w-4 h-4 mr-2" />Delete
+                                                    </DropdownMenuItem>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -297,6 +308,16 @@ export default function ClientsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!deleteConfirmClient}
+                onOpenChange={(open) => !open && setDeleteConfirmClient(null)}
+                title="Delete Client"
+                description={`Are you sure you want to delete "${deleteConfirmClient?.company_name}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={() => deleteConfirmClient && handleDelete(deleteConfirmClient)}
+            />
         </div>
     );
 }

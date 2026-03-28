@@ -44,6 +44,24 @@ export async function updateCandidateApplication(
     return resp.json();
 }
 
+export async function hireCandidateApplication(
+    id: number,
+    payload: { start_date: string }
+) {
+    const resp = await apiFetch(`candidate-applications/${id}/hire`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to hire candidate.");
+    }
+
+    return resp.json();
+}
+
 export async function getCandidatesForManpowerRequest(manpowerRequestId: string) {
     const resp = await apiFetch(
         `manpower-requests/${manpowerRequestId}/candidates`,

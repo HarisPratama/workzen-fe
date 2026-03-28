@@ -18,7 +18,25 @@ export async function registerTenant(payload: RegisterTenantPayload) {
 
     if (!resp.ok) {
         const error = await resp.json().catch(() => null);
-        throw new Error(error?.meta?.message || "Failed to register tenant.");
+        const message = error?.meta?.message || error?.message;
+
+        if (resp.status === 400) {
+            throw new Error(message || "Please fill in all required fields.");
+        }
+        if (resp.status === 409) {
+            throw new Error(message || "An account with this email already exists.");
+        }
+        if (resp.status === 422) {
+            throw new Error(message || "Invalid data. Please check your input.");
+        }
+        if (resp.status === 429) {
+            throw new Error("Too many requests. Please try again later.");
+        }
+        if (resp.status >= 500) {
+            throw new Error("Server is currently unavailable. Please try again later.");
+        }
+
+        throw new Error(message || "Registration failed. Please try again.");
     }
 
     return resp.json();

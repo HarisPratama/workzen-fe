@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ArrowLeft, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign, Clock, FileText, MessageSquare, Send, Building2, CheckCircle, Edit, Trash2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
@@ -27,6 +28,7 @@ import {
 } from "@/app/_components/ui/select";
 import { useRouter, useParams } from "next/navigation";
 import { getDetailCandidate, updateCandidate, deleteCandidate } from "@/services/candidate.service";
+import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
 import { getManpowerRequest } from "@/services/manpower_request.service";
 import { createCandidateApplication } from "@/services/candidate-application.service";
 
@@ -56,11 +58,13 @@ export default function CandidateDetailPage() {
     const candidateId = params.id as string;
 
     const [candidate, setCandidate] = useState<CandidateDetail | null>(null);
+    const { can } = useAuth();
     const [loading, setLoading] = useState(true);
     const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState("");
     const [manpowerRequests, setManpowerRequests] = useState<ManpowerRequestOption[]>([]);
     const [applyLoading, setApplyLoading] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
     const fetchCandidate = useCallback(async () => {
         setLoading(true);
@@ -153,12 +157,13 @@ export default function CandidateDetailPage() {
     };
 
     const handleDelete = async () => {
-        if (!confirm(`Delete candidate "${candidate?.full_name}"? This cannot be undone.`)) return;
         try {
             await deleteCandidate(candidateId);
             router.push("/org/candidates");
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to delete candidate.");
+        } finally {
+            setDeleteConfirmOpen(false);
         }
     };
 
@@ -248,21 +253,27 @@ export default function CandidateDetailPage() {
                 </div>
 
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={openEditDialog}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                    </Button>
-                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={handleDelete}>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                    </Button>
-                    <Button
-                        onClick={handleOpenApplyDialog}
-                        className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
-                    >
-                        <Send className="w-4 h-4 mr-2" />
-                        Apply to Request
-                    </Button>
+                    {can("candidates:edit") && (
+                        <Button variant="outline" onClick={openEditDialog}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                        </Button>
+                    )}
+                    {can("candidates:delete") && (
+                        <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteConfirmOpen(true)}>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                        </Button>
+                    )}
+                    {can("candidates:edit") && (
+                        <Button
+                            onClick={handleOpenApplyDialog}
+                            className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
+                        >
+                            <Send className="w-4 h-4 mr-2" />
+                            Apply to Request
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -509,6 +520,16 @@ export default function CandidateDetailPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Delete Candidate"
+                description={`Are you sure you want to delete "${candidate?.full_name}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={handleDelete}
+            />
         </div>
     );
 }

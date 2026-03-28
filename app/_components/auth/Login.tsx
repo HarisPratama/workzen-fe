@@ -19,6 +19,11 @@ export default function LoginComponent() {
     const [success, setSuccess] = useState(false);
 
     const onSubmit = async (data:any) => {
+        if (!data.email || !data.password) {
+            toast.error("Please enter your email and password.");
+            return;
+        }
+
         setLoading(true)
 
         try {

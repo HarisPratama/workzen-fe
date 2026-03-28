@@ -24,6 +24,7 @@ interface ComboboxProps {
     options: ComboboxOption[];
     value: string;
     onValueChange: (value: string) => void;
+    onSearchChange?: (search: string) => void;
     placeholder?: string;
     searchPlaceholder?: string;
     emptyText?: string;
@@ -36,6 +37,7 @@ export function Combobox({
     options,
     value,
     onValueChange,
+    onSearchChange,
     placeholder = "Select...",
     searchPlaceholder = "Search...",
     emptyText = "No results found.",
@@ -72,8 +74,8 @@ export function Combobox({
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                    <CommandInput placeholder={searchPlaceholder} />
+                <Command shouldFilter={!onSearchChange}>
+                    <CommandInput placeholder={searchPlaceholder} onValueChange={onSearchChange} />
                     <CommandList>
                         <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
