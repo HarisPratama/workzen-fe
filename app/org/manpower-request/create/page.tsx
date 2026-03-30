@@ -40,6 +40,8 @@ const CreateMR = () => {
 
     const handleSaveRequest = async (data: CreateManpowerRequest) => {
         try {
+            setLoading(true);
+
             const resp = await createManpowerRequest(
                 {
                     ...data,
@@ -56,6 +58,8 @@ const CreateMR = () => {
             }
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to create manpower request.");
+        } finally {
+            setLoading(false);
         }
 
     };

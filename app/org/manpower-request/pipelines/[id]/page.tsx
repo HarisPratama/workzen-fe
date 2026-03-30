@@ -237,6 +237,7 @@ export default function CandidatePipeline() {
     const [hireAcceptedOffer, setHireAcceptedOffer] = useState<OfferData | null>(null);
     // Drawer data
     const [candidateInterviews, setCandidateInterviews] = useState<InterviewData[]>([]);
+    const [candidateInterview, setCandidateInterview] = useState<InterviewData | null>(null);
     const [candidateOffers, setCandidateOffers] = useState<OfferData[]>([]);
     const [interviewsLoading, setInterviewsLoading] = useState(false);
     const [offersLoading, setOffersLoading] = useState(false);
@@ -512,7 +513,7 @@ export default function CandidatePipeline() {
                                 <Tabs defaultValue="profile" className="mt-6 p-6">
                                     <TabsList className="grid w-full grid-cols-3">
                                         <TabsTrigger value="profile">Profile</TabsTrigger>
-                                        <TabsTrigger value="interview">Interview</TabsTrigger>
+                                        <TabsTrigger disabled={selectedCandidate?.status !== "INTERVIEW" && selectedCandidate.status !== "OFFERED"} value="interview">Interview</TabsTrigger>
                                         <TabsTrigger value="offer">Offer</TabsTrigger>
                                     </TabsList>
 
@@ -555,22 +556,13 @@ export default function CandidatePipeline() {
                                     {/* Interview Tab */}
                                     <TabsContent value="interview" className="space-y-4 mt-6">
                                         <Button
+                                            disabled={selectedCandidate?.status !== "INTERVIEW"}
                                             onClick={() => setScheduleInterviewModalOpen(true)}
                                             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                                         >
                                             <Calendar className="w-4 h-4 mr-2" />
                                             Schedule Interview
                                         </Button>
-
-                                        <Button
-                                            onClick={() => setInterviewResultModalOpen(true)}
-                                            variant="outline"
-                                            className="w-full"
-                                        >
-                                            <CheckCircle className="w-4 h-4 mr-2" />
-                                            Submit Interview Result
-                                        </Button>
-
                                         {interviewsLoading ? (
                                             <div className="space-y-3">
                                                 <Skeleton className="h-20 rounded-lg" />
@@ -606,6 +598,18 @@ export default function CandidatePipeline() {
                                                                 {interview.location}
                                                             </div>
                                                         )}
+                                                        <Button
+                                                            disabled={selectedCandidate?.status !== "INTERVIEW"}
+                                                            onClick={() => {
+                                                                setInterviewResultModalOpen(true)
+                                                                setCandidateInterview(interview)
+                                                            }}
+                                                            variant="outline"
+                                                            className="w-full"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                                            Submit Interview Result
+                                                        </Button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -788,10 +792,7 @@ export default function CandidatePipeline() {
                         fetchCandidates();
                         if (selectedCandidate) handleCandidateClick(selectedCandidate);
                     }}
-                    interview={selectedCandidate ? {
-                        candidateName: selectedCandidate.name,
-                        position: selectedCandidate.position,
-                    } : null}
+                    interview={candidateInterview}
                 />
 
                 {/* Create Offer Modal */}

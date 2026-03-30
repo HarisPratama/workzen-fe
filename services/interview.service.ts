@@ -59,7 +59,6 @@ export type CreateInterviewPayload = {
     candidate_application_id: number;
     manpower_request_id?: number;
     interviewer_id: number;
-    interview_type?: string;
     scheduled_at: string;
     duration_minutes: number;
     type: "phone" | "video" | "in-person" | "technical" | "hr" | "final";
@@ -120,6 +119,31 @@ export async function deleteInterview(id: string) {
     if (!resp.ok) {
         const err = await resp.json().catch(() => null);
         throw new Error(err?.meta?.message || "Failed to delete interview.");
+    }
+
+    return resp.json();
+}
+
+export type SubmitFeedbackPayload = {
+    rating: number;
+    strengths?: string;
+    weaknesses?: string;
+    overall_feedback: string;
+    recommendation: "hire" | "no_hire" | "strong_hire";
+};
+
+export async function submitFeedback(id: string, payload: SubmitFeedbackPayload) {
+    const resp = await apiFetch(`interviews/${id}/feedback`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to submit feedback.");
     }
 
     return resp.json();

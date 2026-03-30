@@ -98,7 +98,7 @@ export default function PayrollPage() {
             const tax = Number(createForm.tax) || 0;
 
             await createPayroll({
-                employee_id: createForm.employee_id,
+                employee_id: Number(createForm.employee_id),
                 period_start: createForm.period_start,
                 period_end: createForm.period_end,
                 basic_salary: basicSalary,

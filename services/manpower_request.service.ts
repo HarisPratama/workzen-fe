@@ -71,7 +71,7 @@ export async function createManpowerRequest(
 
     if (!resp.ok) {
         const err = await resp.json().catch(() => null);
-        throw new Error(err?.meta?.message || "Failed to create manpower-requests.");
+        throw new Error(err?.message || err?.meta?.message || "Failed to create manpower-requests.");
     }
 
     return resp.json();

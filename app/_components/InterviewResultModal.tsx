@@ -20,16 +20,27 @@ import {
     SelectTrigger,
     SelectValue,
 } from "./ui/select";
-import { updateInterview } from "@/services/interview.service";
+import { updateInterview, submitFeedback } from "@/services/interview.service";
+
+type CandidateStatus = "APPLIED" | "SCREENING" | "INTERVIEW" | "OFFERED" | "HIRED";
 
 interface InterviewResultModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onResultSubmitted?: () => void;
     interview: {
-        id?: number;
-        candidateName?: string;
-        position?: string;
+        id: number;
+        type: string;
+        scheduled_at: string;
+        duration_minutes: number;
+        status?: string;
+        result?: string;
+        location?: string;
+        meeting_link?: string;
+        interviewer?: { id: number; name: string };
+        candidate_application?: { id: number; position: string; candidate: {
+            full_name: string;
+        } };
     } | null;
 }
 
@@ -41,6 +52,7 @@ export function InterviewResultModal({
 }: InterviewResultModalProps) {
     const [result, setResult] = useState<"PASS" | "FAIL" | "">("");
     const [notes, setNotes] = useState("");
+    const [rating, setRating] = useState(5);
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
@@ -48,13 +60,16 @@ export function InterviewResultModal({
 
         setLoading(true);
         try {
-            // Note: The API may not have a direct "result" field on the interview update.
-            // This updates the interview - the backend should handle status transitions.
-            await updateInterview(String(interview.id), {});
+            await submitFeedback(String(interview.id), {
+                rating: rating,
+                overall_feedback: notes,
+                recommendation: result === "PASS" ? "hire" : "no_hire",
+            });
             setResult("");
             setNotes("");
             onOpenChange(false);
             onResultSubmitted?.();
+            toast.success(result === "PASS" ? "Candidate passed!" : "Candidate rejected.");
         } catch (err) {
             console.error(err);
             toast.error(err instanceof Error ? err.message : "Failed to submit result. Please try again.");
@@ -83,8 +98,8 @@ export function InterviewResultModal({
                     {/* Candidate Info */}
                     <div className="bg-gray-50 rounded-lg p-4">
                         <p className="text-sm text-gray-600 mb-1">Candidate</p>
-                        <p className="font-semibold text-gray-900">{interview?.candidateName}</p>
-                        <p className="text-sm text-gray-600">{interview?.position}</p>
+                        <p className="font-semibold text-gray-900">{interview?.candidate_application?.candidate?.full_name}</p>
+                        <p className="text-sm text-gray-600">{interview?.candidate_application?.position}</p>
                     </div>
 
                     {/* Result */}

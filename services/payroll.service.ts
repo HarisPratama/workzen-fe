@@ -35,7 +35,7 @@ export async function getPayrollsByEmployee(employeeId: string, params?: { page?
 }
 
 export type CreatePayrollPayload = {
-    employee_id: string;
+    employee_id: number;
     period_start: string;
     period_end: string;
     basic_salary: number;
