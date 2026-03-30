@@ -69,7 +69,7 @@ export function InterviewResultModal({
             setNotes("");
             onOpenChange(false);
             onResultSubmitted?.();
-            toast.success(result === "PASS" ? "Candidate passed!" : "Candidate rejected.");
+            toast.success("Interview result submitted successfully");
         } catch (err) {
             console.error(err);
             toast.error(err instanceof Error ? err.message : "Failed to submit result. Please try again.");
@@ -140,16 +140,16 @@ export function InterviewResultModal({
                                     <>
                                         <CheckCircle className="w-5 h-5 text-green-600" />
                                         <div>
-                                            <p className="font-semibold text-green-900">Candidate Passed</p>
-                                            <p className="text-sm text-green-700">Candidate will be moved to OFFERED stage</p>
+                                            <p className="font-semibold text-green-900">Recommended to Pass</p>
+                                            <p className="text-sm text-green-700">Interview result will be saved as completed</p>
                                         </div>
                                     </>
                                 ) : (
                                     <>
                                         <XCircle className="w-5 h-5 text-red-600" />
                                         <div>
-                                            <p className="font-semibold text-red-900">Candidate Failed</p>
-                                            <p className="text-sm text-red-700">Candidate will be rejected from this position</p>
+                                            <p className="font-semibold text-red-900">Recommended to Fail</p>
+                                            <p className="text-sm text-red-700">Interview result will be saved as completed</p>
                                         </div>
                                     </>
                                 )}
@@ -191,8 +191,8 @@ export function InterviewResultModal({
                         {loading
                             ? "Submitting..."
                             : result === "PASS"
-                                ? "Pass & Continue"
-                                : "Reject Candidate"}
+                                ? "Submit Result"
+                                : "Submit Rejection Result"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
