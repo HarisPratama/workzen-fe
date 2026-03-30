@@ -88,7 +88,7 @@ export async function createOffer(payload: CreateOfferPayload) {
 }
 
 export type UpdateOfferPayload = {
-    status?: "draft" | "sent" | "accepted" | "rejected" | "withdrawn";
+    status?: "draft" | "sent" | "accepted" | "declined" | "withdrawn";
     feedback?: string;
     negotiated_salary?: number;
     start_date?: string;

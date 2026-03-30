@@ -50,7 +50,7 @@ export function OfferDecisionModal({
         setLoading(true);
         try {
             await updateOffer(String(offer.id), {
-                status: decision as "sent" | "accepted" | "rejected",
+                status: decision as "sent" | "accepted" | "declined",
                 ...(feedback ? { feedback } : {}),
             });
             toast.success(

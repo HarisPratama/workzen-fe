@@ -599,7 +599,7 @@ export default function CandidatePipeline() {
                                                             </div>
                                                         )}
                                                         <Button
-                                                            disabled={selectedCandidate?.status !== "INTERVIEW"}
+                                                            disabled={selectedCandidate?.status !== "INTERVIEW" || interview.status === "COMPLETED"}
                                                             onClick={() => {
                                                                 setInterviewResultModalOpen(true)
                                                                 setCandidateInterview(interview)
