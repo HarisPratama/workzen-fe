@@ -26,6 +26,7 @@ const MRDetail  = () => {
         deadline_date: "",
         work_location: "",
         job_description: "",
+        public_token: "",
         created_at: ""
     });
 

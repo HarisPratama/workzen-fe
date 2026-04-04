@@ -14,7 +14,10 @@ import {
   Kanban,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  Link,
+  Copy,
+  Check
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -44,7 +47,7 @@ import { ManpowerRequest } from "@/app/_components/ManpowerRequestList";
 import { Skeleton } from "@/app/_components/ui/skeleton";
 import { getCandidatesForManpowerRequest, createCandidateApplication } from "@/services/candidate-application.service";
 import { getCandidates } from "@/services/candidate.service";
-import { updateManpowerRequest, deleteManpowerRequest } from "@/services/manpower_request.service";
+import { updateManpowerRequest, deleteManpowerRequest, generateJobPostingLink } from "@/services/manpower_request.service";
 import { getListClient } from "@/services/client.service";
 import { useFetch } from "@/hooks/use-fetch";
 import { ConfirmDialog } from "@/app/_components/ConfirmDialog";
@@ -80,6 +83,8 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [addCandidateLoading, setAddCandidateLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [generateLinkLoading, setGenerateLinkLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Edit state
   const [editOpen, setEditOpen] = useState(false);
@@ -134,6 +139,35 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
     } finally {
       setEditLoading(false);
     }
+  };
+
+  const handleGenerateLink = async () => {
+    setGenerateLinkLoading(true);
+    try {
+      const res = await generateJobPostingLink(String(manpowerRequest.id));
+      const token = res.data?.public_token;
+      if (token) {
+        const publicUrl = `${window.location.origin}/jobs/${token}`;
+        await navigator.clipboard.writeText(publicUrl);
+        setCopied(true);
+        toast.success("Job posting link copied to clipboard!");
+        setTimeout(() => setCopied(false), 3000);
+        onRefetch?.();
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate link.");
+    } finally {
+      setGenerateLinkLoading(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!manpowerRequest.public_token) return;
+    const publicUrl = `${window.location.origin}/jobs/${manpowerRequest.public_token}`;
+    await navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    toast.success("Link copied to clipboard!");
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const handleDeleteRequest = async () => {
@@ -290,6 +324,17 @@ export function ManpowerRequestDetail({ onBack, manpowerRequest, loading, onRefe
               {can("manpower-request:delete") && (
                 <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteConfirmOpen(true)}>
                   <Trash2 className="w-4 h-4 mr-2" />Delete
+                </Button>
+              )}
+              {manpowerRequest.public_token ? (
+                <Button variant="outline" onClick={handleCopyLink}>
+                  {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                  {copied ? "Copied!" : "Copy Job Link"}
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={handleGenerateLink} disabled={generateLinkLoading}>
+                  <Link className="w-4 h-4 mr-2" />
+                  {generateLinkLoading ? "Generating..." : "Generate Job Link"}
                 </Button>
               )}
               <button

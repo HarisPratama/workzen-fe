@@ -103,6 +103,19 @@ export async function updateManpowerRequest(id: string, payload: UpdateManpowerR
     return resp.json();
 }
 
+export async function generateJobPostingLink(id: string) {
+    const resp = await apiFetch(`manpower-requests/${id}/generate-link`, {
+        method: "POST",
+    });
+
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => null);
+        throw new Error(err?.meta?.message || "Failed to generate job posting link.");
+    }
+
+    return resp.json();
+}
+
 export async function deleteManpowerRequest(id: string) {
     const resp = await apiFetch(`manpower-requests/${id}`, {
         method: "DELETE",

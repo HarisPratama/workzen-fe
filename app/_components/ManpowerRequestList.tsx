@@ -45,6 +45,7 @@ export interface ManpowerRequest {
   deadline_date: string;
   work_location: string;
   job_description: string;
+  public_token?: string;
   created_at: string;
 }
 
